@@ -4,23 +4,23 @@
 
 ## Objectives
 
-1. **Create a "Golden Dataset"**
+1. Create a "Golden Dataset"
     - Use SDG to create a dataset for evaluation.
-2. **Evaluate Each Retriever Using RAGAS Metrics**
+2. Evaluate Each Retriever Using RAGAS Metrics
     - Compare different retrievers with retriever-specific evaluation metrics.
-    - Note: **Semantic Chunking** is NOT a retriever, but you can test its impact by comparing "semantic chunking on" vs. "semantic chunking off."
-3. **Compile Findings & Write a Short Analysis**
+    - Note: Semantic Chunking is NOT a retriever, but you can test its impact by comparing "semantic chunking on" vs. "semantic chunking off"
+3. Compile Findings & Write a Short Analysis
     - Determine which retriever performs best for this dataset and explain why.
     - Your analysis should factor in:
-        - **Cost** (How expensive is it to run?)
-        - **Latency** (How fast is retrieval?)
-        - **Performance** (How well does it retrieve the right data?)
+        - Cost (How expensive is it to run?)
+        - Latency (How fast is retrieval?)
+        - Performance (How well does it retrieve the right data?)
 
 ---
 
 ## Plan and Start working on Eval
 
-- collaborate and **map out their approach before coding.**
+- collaborate and map out their approach before coding.
 - Key considerations
   - What trade-offs are you willing to accept?
   - Is faster retrieval always better, or does accuracy matter more?
