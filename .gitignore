@@ -62,6 +62,7 @@ data/
 notebooks/baseline_evaluation_dataset.csv
 notebooks/rerank_evaluation_dataset.csv
 notebooks/usecase_data_kg.json
+notebooks/golden_testset.jsonl
 
 # Temporary work files
 temp/
