@@ -105,7 +105,6 @@ graph TB
 
     subgraph Dense Vector-Based
         DENSE --> S1[Naive Retriever<br/>────────────<br/>Type: Dense Vector Search<br/>Method: Cosine Similarity<br/>k: 10<br/>Store: Qdrant<br/>────────────<br/>Pros: Simple, Fast<br/>Cons: Fixed embeddings]
-
         DENSE --> S7[Semantic Retriever<br/>────────────<br/>Type: Dense + Smart Chunking<br/>Method: Percentile Breakpoints<br/>k: 10<br/>Chunking: Semantic boundaries<br/>────────────<br/>Pros: Context-aware chunks<br/>Cons: Embedding overhead]
     end
 
@@ -141,15 +140,27 @@ graph TB
         CHAIN --> EVAL[Evaluation<br/>────────────<br/>Metrics:<br/>• Cost<br/>• Latency<br/>• Performance<br/>────────────<br/>Tool: Ragas + LangSmith]
     end
 
-    style S1 fill:#e3f2fd
-    style S2 fill:#fff3e0
-    style S3 fill:#f3e5f5
-    style S4 fill:#e8f5e9
-    style S5 fill:#fce4ec
-    style S6 fill:#e0f2f1
-    style S7 fill:#f1f8e9
-    style CHAIN fill:#ede7f6
-    style EVAL fill:#fff9c4
+    %% Improved contrast classes for each node
+    classDef blueBox fill:#e3f2fd,stroke:#1976d2,color:#111,font-weight:700;
+    classDef yellowBox fill:#fff9c4,stroke:#fbc02d,color:#111,font-weight:700;
+    classDef orangeBox fill:#fff3e0,stroke:#ef6c00,color:#111,font-weight:700;
+    classDef violetBox fill:#ede7f6,stroke:#8e24aa,color:#111,font-weight:700;
+    classDef lavenderBox fill:#f3e5f5,stroke:#7e57c2,color:#111,font-weight:700;
+    classDef greenBox fill:#e8f5e9,stroke:#388e3c,color:#111,font-weight:700;
+    classDef pinkBox fill:#fce4ec,stroke:#ad1457,color:#111,font-weight:700;
+    classDef tealBox fill:#e0f2f1,stroke:#00897b,color:#111,font-weight:700;
+    classDef lightGreenBox fill:#f1f8e9,stroke:#689f38,color:#111,font-weight:700;
+
+    class S1 blueBox;
+    class S2 orangeBox;
+    class S3 lavenderBox;
+    class S4 greenBox;
+    class S5 pinkBox;
+    class S6 tealBox;
+    class S7 lightGreenBox;
+    class CHAIN violetBox;
+    class EVAL yellowBox;
+
 ```
 
 ### Key Insights
