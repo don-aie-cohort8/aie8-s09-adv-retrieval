@@ -59,10 +59,9 @@ Thumbs.db
 data/
 
 # Generated datasets (from Ragas evaluation)
-notebooks/baseline_evaluation_dataset.csv
-notebooks/rerank_evaluation_dataset.csv
-notebooks/usecase_data_kg.json
-notebooks/golden_testset.jsonl
+notebooks/*.csv
+notebooks/*.json
+notebooks/*.jsonl
 
 # Temporary work files
 temp/
