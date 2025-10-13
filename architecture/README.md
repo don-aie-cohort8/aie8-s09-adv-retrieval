@@ -1,1321 +1,930 @@
 # Repository Architecture Documentation
 
+> **Generated**: October 8, 2025
+> **Project**: Advanced Retrieval Strategies for RAG (Retrieval-Augmented Generation)
+
 ## Overview
 
-This is an **educational project** focused on exploring and comparing advanced retrieval strategies for Retrieval-Augmented Generation (RAG) systems using LangChain. The project implements 7 distinct retrieval strategies, each demonstrating different approaches to finding relevant context for large language model (LLM) responses.
+### Project Purpose
 
-**What it does**: Provides a comprehensive comparison framework for evaluating how different retrieval methods perform across various query types, enabling data scientists and ML engineers to make informed decisions about which strategy to use in production.
+This educational repository demonstrates **advanced retrieval techniques for RAG (Retrieval-Augmented Generation) systems** using the LangChain ecosystem. The project provides a comprehensive exploration of seven distinct retrieval strategies, synthetic data generation with RAGAS, and evaluation frameworks using both RAGAS metrics and LangSmith integration.
 
-**Why it exists**: Understanding retrieval is critical for RAG system performance. This project serves as both a learning resource and a testing ground for comparing retrieval approaches on real data.
+The codebase is structured as a progressive learning journey through three main sessions, each building upon previous concepts to create a complete understanding of modern RAG system architecture and evaluation.
 
-**Key architectural principles**:
-- **Modularity**: Each retrieval strategy is independently implemented and testable
-- **Consistency**: All strategies use identical LLM, prompts, and evaluation frameworks for fair comparison
-- **Composability**: Strategies can be combined (as demonstrated in the Ensemble retriever)
-- **Observability**: LangSmith integration enables detailed tracing and cost analysis
-- **Extensibility**: New retrieval strategies can be added following established patterns
+### Educational Focus
 
-**Technology Foundation**: Built entirely on LangChain's Expression Language (LCEL), leveraging Qdrant for vector storage, OpenAI for embeddings/LLM, and Cohere for reranking.
+This is an **educational and tutorial project** designed for:
+- AI Engineering students learning advanced RAG techniques
+- Researchers exploring retrieval strategy performance
+- Developers seeking practical implementations of LangChain patterns
+- Teams evaluating different retrieval approaches for production systems
 
-**Target Audience**:
-- Data scientists building RAG systems
-- ML engineers optimizing retrieval pipelines
-- Researchers comparing retrieval approaches
-- Students learning advanced RAG techniques
+The project emphasizes:
+- **Hands-on learning** through Jupyter notebooks and Python scripts
+- **Comparative analysis** of retrieval strategies with real metrics
+- **Best practices** in RAG system design and evaluation
+- **LangChain Expression Language (LCEL)** patterns for production-ready code
 
----
+### Key Capabilities
+
+- **Synthetic Data Generation**: Create high-quality test datasets using RAGAS knowledge graphs with multiple query types (single-hop, multi-hop abstract, multi-hop specific)
+- **Seven Retrieval Strategies**: Naive, BM25, Contextual Compression, Multi-Query, Parent Document, Ensemble, and Semantic Chunking
+- **Comprehensive Evaluation**: Six RAGAS metrics (LLM Context Recall, Faithfulness, Factual Correctness, Response Relevancy, Context Entity Recall, Noise Sensitivity)
+- **LangSmith Integration**: Full tracing, monitoring, and custom evaluation capabilities
+- **LangGraph Workflows**: State-managed RAG pipelines with retrieve → generate patterns
+- **Production Patterns**: LCEL chain construction for consistent, traceable implementations
 
 ## Quick Start
 
 ### For New Developers
 
-**Where to start**: Begin with the [API Reference](docs/04_api_reference.md) to understand each retrieval strategy, then explore the [Component Inventory](docs/01_component_inventory.md) to see how it's implemented.
+1. **Start with the Component Inventory** - Read [01_component_inventory.md](docs/01_component_inventory.md) to understand what's in the codebase and where everything is located
+2. **Review Architecture Diagrams** - Study [02_architecture_diagrams.md](diagrams/02_architecture_diagrams.md) to see how components fit together in a layered architecture
+3. **Understand Data Flows** - Follow [03_data_flows.md](docs/03_data_flows.md) to see exactly how data moves through each retrieval strategy
+4. **Explore API Reference** - Use [04_api_reference.md](docs/04_api_reference.md) as your implementation guide with detailed examples
 
-**Orientation path**:
-1. Read "Retrieval Strategies" section below to understand the 7 approaches
-2. Review [Architecture Diagrams](diagrams/02_architecture_diagrams.md) to visualize system structure
-3. Examine [Data Flow Analysis](docs/03_data_flows.md) for detailed execution flows
-4. Try the interactive notebook: `/notebooks/session09-adv-retrieval.ipynb`
+**Recommended Learning Path**:
+- Begin with Session 09 notebooks to see retrieval strategies in action
+- Move to Session 07 to understand synthetic data generation
+- Complete with Session 08 to learn evaluation frameworks
+- Study the consolidated scripts for production-ready patterns
 
-**Key files to understand**:
-- `config.py` - All configuration and paths (32 lines, very simple)
-- `adv-retrieval.py` - Main implementation with all 7 strategies (595 lines)
-- `notebooks/session09-adv-retrieval.ipynb` - Interactive learning environment
+### For Researchers/Students
 
-### For Architects
+This project is ideal for understanding:
+- **How retrieval strategies differ**: Compare semantic search, sparse retrieval, reranking, query expansion, and hybrid approaches
+- **Performance trade-offs**: Analyze latency, cost, and quality metrics across strategies
+- **Evaluation methodologies**: Learn RAGAS metrics and LangSmith evaluation workflows
+- **Best practices**: Discover when to use each retrieval strategy based on use case requirements
 
-**Architectural decisions**: This project follows a **pattern-based implementation** rather than traditional OOP. It uses no custom classes, relying entirely on LangChain primitives composed via LCEL.
+**Key Learning Questions**:
+- When should I use BM25 vs. semantic search?
+- How does reranking improve retrieval quality?
+- What's the cost-benefit of ensemble retrieval?
+- How do I evaluate RAG systems objectively?
 
-**Key design patterns**:
-- LCEL Chain Pattern (consistent across all strategies)
-- Retriever Composition Pattern (wrapping base retrievers)
-- Small-to-Big Strategy (Parent Document retrieval)
-- Meta-Retrieval Pattern (Ensemble combining multiple retrievers)
+### Documentation Map
 
-**Where to find architectural insights**:
-- [Architecture Diagrams](diagrams/02_architecture_diagrams.md) - Visual system overview, component relationships, class hierarchies
-- [Component Inventory](docs/01_component_inventory.md) - No custom classes; framework-driven architecture
-- [Data Flow Analysis](docs/03_data_flows.md) - 9 sequence diagrams showing execution patterns
-
-**Critical architectural notes**:
-1. **Stateless chains**: All RAG chains are stateless and independently invocable
-2. **In-memory vector stores**: Uses `:memory:` location for ephemeral storage (educational focus)
-3. **No abstraction layers**: Direct use of library components without custom wrappers
-4. **Notebook-first design**: Primary implementation converted from Jupyter notebook
-
-### For Users
-
-**Quick example** - Get started with naive retrieval in 5 steps:
-
-```python
-# 1. Set up environment
-import os
-import getpass
-os.environ["OPENAI_API_KEY"] = getpass.getpass("OpenAI API Key:")
-
-# 2. Initialize models
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_community.vectorstores import Qdrant
-
-chat_model = ChatOpenAI(model="gpt-4.1-nano")
-embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-
-# 3. Load your data
-from langchain_community.document_loaders.csv_loader import CSVLoader
-loader = CSVLoader(file_path="./data/Projects_with_Domains.csv")
-documents = loader.load()
-
-# 4. Create vector store and retriever
-vectorstore = Qdrant.from_documents(
-    documents, embeddings, location=":memory:", collection_name="my_collection"
-)
-retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
-
-# 5. Build and use RAG chain
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
-from operator import itemgetter
-
-prompt = ChatPromptTemplate.from_template(
-    "Use context to answer.\n\nQ: {question}\n\nContext: {context}"
-)
-
-chain = (
-    {"context": itemgetter("question") | retriever, "question": itemgetter("question")}
-    | RunnablePassthrough.assign(context=itemgetter("context"))
-    | {"response": prompt | chat_model, "context": itemgetter("context")}
-)
-
-result = chain.invoke({"question": "What is the most common project domain?"})
-print(result["response"].content)
-```
-
-**See**: [API Reference - Basic Usage](docs/04_api_reference.md#basic-usage) for complete working examples.
-
----
+- **[Component Inventory](docs/01_component_inventory.md)** - Complete catalog of modules, classes, and functions with file references and line numbers
+- **[Architecture Diagrams](diagrams/02_architecture_diagrams.md)** - Visual representation of system structure including layered architecture, component relationships, and data flows
+- **[Data Flow Analysis](docs/03_data_flows.md)** - Sequence diagrams showing data movement through all seven retrieval strategies, evaluation workflows, and LangSmith integration
+- **[API Reference](docs/04_api_reference.md)** - Detailed API documentation with examples, usage patterns, and best practices
 
 ## Architecture Summary
 
-### System Design
+### System Layers
 
-The system follows a **layered architecture** with clear separation of concerns:
+The project follows a **layered architecture pattern** designed for educational exploration:
 
-```
-┌─────────────────────────────────────────────┐
-│         Configuration Layer                 │  config.py - paths, settings
-├─────────────────────────────────────────────┤
-│         Data Loading Layer                  │  CSV → Documents with metadata
-├─────────────────────────────────────────────┤
-│         Embedding Layer                     │  OpenAI text-embedding-3-small
-├─────────────────────────────────────────────┤
-│         Vector Store Layer                  │  3x Qdrant stores + InMemoryStore
-├─────────────────────────────────────────────┤
-│         Retrieval Strategy Layer            │  7 distinct retrieval approaches
-├─────────────────────────────────────────────┤
-│         RAG Chain Layer                     │  7 LCEL chains (shared LLM/prompt)
-├─────────────────────────────────────────────┤
-│         Generation Layer                    │  GPT-4.1-nano + RAG prompt template
-├─────────────────────────────────────────────┤
-│         Output Layer                        │  Response + Context documents
-└─────────────────────────────────────────────┘
-```
+**Presentation Layer**: Jupyter notebooks organized by session topic (sessions 07-09) providing interactive learning experiences
 
-**Key design decisions**:
-1. **Multiple vector stores**: Uses 3 separate Qdrant collections optimized for different strategies (naive, semantic, parent-document)
-2. **Shared components**: All chains use the same LLM and prompt, isolating retrieval as the only variable for fair comparison
-3. **Parallel execution**: Ensemble retriever combines results from 5 strategies using Reciprocal Rank Fusion
-4. **Two-stage patterns**: Compression (retrieve → rerank) and Parent Document (search children → return parents) use multi-stage processing
+**Application Layer**: Python script implementations of each session's concepts plus configuration management
 
-**System layers and responsibilities**:
-- **Configuration**: Centralized path and setting management
-- **Data**: CSV loading with metadata preservation
-- **Embedding**: Convert text to 1536-dim vectors
-- **Storage**: Vector databases and document stores
-- **Retrieval**: 7 strategies with different trade-offs
-- **Chains**: LCEL orchestration of retrieval → generation
-- **Generation**: LLM response synthesis
-- **Output**: Structured results with response + context
+**Business Logic Layer**: Core RAG functionality including:
+- 7 retrieval strategies (Naive, BM25, Contextual Compression, Multi-Query, Parent Document, Ensemble, Semantic Chunking)
+- Evaluation frameworks (RAGAS metrics, LangSmith evaluators)
+- Synthetic data generation with knowledge graphs
+- LCEL chain patterns for consistent implementation
 
-See [Architecture Diagrams - System Architecture](diagrams/02_architecture_diagrams.md#system-architecture) for detailed visualization.
+**Data Access Layer**: Abstraction for vector stores (Qdrant), document stores (InMemoryStore), and data loaders for CSV and PDF documents
 
-### Key Architectural Patterns
+**External Services**: Integration with OpenAI (GPT-4.1 models, text-embedding-3-small/large), Cohere (rerank-v3.5), and LangSmith for observability
 
-#### Pattern 1: LCEL Chain Composition
-**Purpose**: Declarative, type-safe chain building for RAG pipelines
+### Three-Session Structure
 
-**How it's used**: Every retrieval strategy follows this exact pattern:
-```python
-chain = (
-    {"context": itemgetter("question") | retriever, "question": itemgetter("question")}
-    | RunnablePassthrough.assign(context=itemgetter("context"))
-    | {"response": rag_prompt | chat_model, "context": itemgetter("context")}
-)
-```
+The project progresses through three educational sessions, each building on previous concepts:
 
-**Why it matters**: Ensures consistency across all 7 strategies, making comparisons fair and code maintainable.
+#### Session 07: Synthetic Data Generation
 
-**Source**: Used 7 times in `adv-retrieval.py` (lines 168-180, 218-222, 283-287, 326-330, 419-423, 463-467, 538-542)
+- **Key Capabilities**: RAGAS knowledge graph construction, synthetic test set generation, LangSmith dataset creation
+- **Main Components**:
+  - `TestsetGenerator` with multiple query synthesizers (SingleHop, MultiHopAbstract, MultiHopSpecific)
+  - Knowledge graph with document transforms for entity/relationship extraction
+  - LangSmith evaluators (QA, helpfulness, custom criteria)
+- **Output**: Golden test datasets with user_input, reference answers, and reference_contexts
+- **File**: `session07-sdg-ragas-langsmith.py` (333 lines)
 
-#### Pattern 2: Retriever Composition
-**Purpose**: Modular enhancement of base retrieval capabilities
+#### Session 08: RAG Evaluation
 
-**Examples**:
-- **Compression Retriever**: Wraps naive retriever with Cohere reranker
-- **Multi-Query Retriever**: Wraps naive retriever with LLM query expansion
-- **Ensemble Retriever**: Combines 5 retrievers using rank fusion
+- **Key Capabilities**: LangGraph workflow construction, baseline vs. reranked retrieval comparison, comprehensive RAGAS evaluation
+- **Main Components**:
+  - `State` and `AdjustedState` TypedDict for graph state management
+  - `retrieve()` and `generate()` node functions
+  - `retrieve_reranked()` with Cohere rerank-v3.5
+  - LangGraph compilation and execution
+- **Metrics Used**: LLMContextRecall, Faithfulness, FactualCorrectness, ResponseRelevancy, ContextEntityRecall, NoiseSensitivity
+- **File**: `session08-ragas-rag-evals.py` (303 lines)
 
-**Why it matters**: Enables building complex retrieval strategies from simple primitives without tight coupling.
+#### Session 09: Advanced Retrieval Strategies
 
-**Source**: See [Component Inventory - Implementation Patterns](docs/01_component_inventory.md#implementation-patterns)
+- **Key Capabilities**: Seven retrieval strategy implementations, LCEL chain construction, performance comparison
+- **Seven Strategies Implemented**:
+  1. **Naive Retrieval** - Cosine similarity search (k=10)
+  2. **BM25** - Sparse retrieval with keyword matching
+  3. **Contextual Compression** - Reranking with Cohere rerank-v3.5
+  4. **Multi-Query** - LLM-generated query variants with result fusion
+  5. **Parent Document** - Small-to-big retrieval (750-char chunks → full docs)
+  6. **Ensemble** - Reciprocal Rank Fusion combining all strategies
+  7. **Semantic Chunking** - Percentile-based semantic boundary detection
+- **Comparison Approach**: Consistent LCEL chain pattern across all strategies for fair evaluation
+- **File**: `session09-adv-retrieval.py` (327 lines)
 
-#### Pattern 3: Small-to-Big Strategy
-**Purpose**: Search with precision, return with context
+### Architecture Patterns
 
-**How it works**: Parent Document Retriever splits documents into small chunks for precise matching, but returns full parent documents for complete context.
+**Key Patterns Identified**:
 
-**Architecture**:
-```
-Query → Embed → Search Child Chunks → Find Parent IDs → Return Parent Documents
-```
+1. **LCEL Chain Pattern** - All retrieval strategies use consistent LangChain Expression Language structure:
+   ```
+   {context + question} → RunnablePassthrough → {response + context}
+   ```
 
-**Why it matters**: Balances precision (small chunks match better) with context (LLM needs full documents).
+2. **Retrieve → Generate Pattern** - Core RAG workflow across all implementations:
+   ```
+   Question → Retriever → Context → Prompt + LLM → Response
+   ```
 
-**Source**: `adv-retrieval.py` lines 350-438, detailed in [Data Flow Analysis - Flow 5](docs/03_data_flows.md#flow-5-parent-document-retrieval-flow)
+3. **State Management Pattern** - LangGraph TypedDict states flowing through node functions:
+   ```
+   State {question, context, response} → retrieve() → generate() → Final State
+   ```
 
-#### Pattern 4: Meta-Retrieval (Ensemble)
-**Purpose**: Leverage strengths of multiple retrieval approaches
+4. **Two-Stage Retrieval Pattern** - Over-retrieve then rerank/compress for quality:
+   ```
+   Retrieve(k=20) → Rerank/Compress → Top-N → Generation
+   ```
 
-**How it works**: Runs 5 retrievers in parallel, combines rankings using Reciprocal Rank Fusion algorithm
+5. **Small-to-Big Pattern** - Parent document retrieval searching small chunks, returning large context:
+   ```
+   Search(child_chunks) → Fetch(parent_ids) → Return(full_documents)
+   ```
 
-**Formula**: `RRF(d) = Σ (weight_i / (k + rank_i(d)))`
-
-**Why it matters**: Most robust approach across diverse query types, combining lexical (BM25) and semantic (embeddings) search.
-
-**Source**: `adv-retrieval.py` lines 441-479, explained in [API Reference - Strategy 6](docs/04_api_reference.md#strategy-6-ensemble-retrieval)
-
-### Technology Stack
-
-| Layer | Technology | Version | Why Chosen |
-|-------|-----------|---------|------------|
-| **Framework** | LangChain | ≥0.3.19 | Industry-standard RAG framework with LCEL |
-| **Embeddings** | OpenAI text-embedding-3-small | Latest | Cost-effective, 1536 dims, excellent performance |
-| **LLM** | GPT-4.1-nano | Latest | Fast, lightweight model for generation |
-| **Vector Store** | Qdrant | ≥1.13.2 | High-performance, easy in-memory mode for demos |
-| **Reranking** | Cohere rerank-v3.5 | 5.12.0 | State-of-the-art cross-encoder reranking |
-| **Sparse Retrieval** | rank-bm25 | ≥0.2.2 | Classic BM25 algorithm for keyword matching |
-| **Evaluation** | Ragas | 0.2.10 | RAG-specific evaluation metrics |
-| **Monitoring** | LangSmith | Latest | Tracing, cost analysis, observability |
-| **Chunking** | LangChain Experimental | ≥0.3.4 | SemanticChunker for intelligent splitting |
-
-**Dependency philosophy**: Heavy reliance on LangChain ecosystem (6 packages) to minimize custom code and leverage battle-tested implementations.
-
----
+6. **Fusion Pattern** - Ensemble retrieval combining multiple strategies with RRF:
+   ```
+   Parallel(retriever1, retriever2, ..., retrieverN) → RRF → Merged Results
+   ```
 
 ## Component Overview
 
 ### Project Structure
 
 ```
-/home/donbr/don-aie-cohort8/aie8-s09-adv-retrieval/
-├── config.py                    - Configuration module (paths, defaults)
-├── adv-retrieval.py            - Main script with 7 retrieval strategies
+aie8-s09-adv-retrieval/
+├── config.py                                    # Configuration management
+├── session07-sdg-ragas-langsmith.py            # Synthetic data generation
+├── session08-ragas-rag-evals.py                # RAG evaluation with RAGAS
+├── session09-adv-retrieval.py                  # Seven retrieval strategies
+├── adv-retrieval.py                            # Full tutorial version
 ├── data/
-│   ├── Projects_with_Domains.csv  - Synthetic use case data
-│   └── howpeopleuseai.pdf        - Additional PDF data
+│   ├── Projects_with_Domains.csv              # Project metadata dataset
+│   └── howpeopleuseai.pdf                      # PDF documents for testing
 ├── notebooks/
-│   ├── session07-sdg-ragas-langsmith.ipynb  - Synthetic data generation
-│   ├── session08-ragas-rag-evals.ipynb      - RAG evaluation
-│   └── session09-adv-retrieval.ipynb        - Main interactive tutorial
-└── ra_output/
-    └── architecture_20251008_203645/
-        ├── README.md            - This file
-        ├── docs/
-        │   ├── 01_component_inventory.md  - Complete component catalog
-        │   ├── 03_data_flows.md          - Detailed sequence diagrams
-        │   └── 04_api_reference.md       - API documentation
-        └── diagrams/
-            └── 02_architecture_diagrams.md - System visualizations
+│   ├── session07-sdg-ragas-langsmith.ipynb
+│   ├── session08-ragas-rag-evals.ipynb
+│   └── session09-adv-retrieval.ipynb
+└── docs/
+    └── [project documentation]
 ```
 
-### Core Components
+### Core Modules
 
-#### Configuration Module (`config.py`)
-**Purpose**: Centralized project configuration and path management
+#### config.py
 
-**Key features**:
-- Cross-platform path handling with `pathlib`
-- Default chunking settings (500 chars, 50 overlap)
-- Qdrant configuration (in-memory for demos)
-- Zero external dependencies
+- **Purpose**: Central configuration management for project paths and settings
+- **Key Components**:
+  - Path management: `PROJECT_ROOT`, `DATA_DIR`, `NOTEBOOKS_DIR`, `DOCS_DIR`
+  - Default settings: `DEFAULT_CHUNK_SIZE=500`, `DEFAULT_CHUNK_OVERLAP=50`
+  - Qdrant configuration: `QDRANT_COLLECTION_NAME`, `QDRANT_LOCATION=":memory:"`
+- **Reference**: See [API Reference](docs/04_api_reference.md#configuration-module)
+- **Location**: `/home/donbr/don-aie-cohort8/aie8-s09-adv-retrieval/config.py`
 
-**Usage**: `from config import PROJECT_ROOT, DATA_DIR, DEFAULT_CHUNK_SIZE`
+#### session07-sdg-ragas-langsmith.py
 
-**Source**: [API Reference - Configuration Module](docs/04_api_reference.md#configuration-module-configpy)
+- **Purpose**: Demonstrates synthetic data generation using RAGAS knowledge graphs and LangSmith evaluation
+- **Key Components**:
+  - Knowledge graph construction with `KnowledgeGraph` and `default_transforms`
+  - Test set generation with `TestsetGenerator` using three query synthesizers
+  - LangSmith dataset creation and custom evaluators (QA, helpfulness, dopeness)
+  - Baseline vs. Dope RAG chain comparison
+- **Reference**: See [API Reference](docs/04_api_reference.md#session-07-synthetic-data-generation)
+- **Location**: `/home/donbr/don-aie-cohort8/aie8-s09-adv-retrieval/session07-sdg-ragas-langsmith.py`
 
-#### Main Implementation (`adv-retrieval.py`)
-**Purpose**: Demonstrates all 7 retrieval strategies with side-by-side comparison
+#### session08-ragas-rag-evals.py
 
-**Key features**:
-- 595 lines of educational code
-- Notebook-style structure (converted from Jupyter)
-- Sequential demonstration of strategies
-- Placeholder for Ragas evaluation
+- **Purpose**: RAG evaluation using RAGAS metrics with LangGraph state management
+- **Key Components**:
+  - `State` and `AdjustedState` TypedDict classes for state management
+  - `retrieve()`, `generate()`, `retrieve_reranked()` node functions
+  - LangGraph baseline and rerank graph construction
+  - Six RAGAS metrics evaluation (context recall, faithfulness, factual correctness, relevancy, entity recall, noise sensitivity)
+- **Reference**: See [API Reference](docs/04_api_reference.md#session-08-rag-evaluation)
+- **Location**: `/home/donbr/don-aie-cohort8/aie8-s09-adv-retrieval/session08-ragas-rag-evals.py`
 
-**Entry point**: Run cells sequentially or use as a script
+#### session09-adv-retrieval.py
 
-**Source**: [Component Inventory - Main Implementation](docs/01_component_inventory.md#2-adv-retrievalpy)
+- **Purpose**: Consolidated implementation of seven advanced retrieval strategies
+- **Key Components**:
+  - Seven retrieval strategies: Naive, BM25, Contextual Compression, Multi-Query, Parent Document, Ensemble, Semantic Chunking
+  - Consistent LCEL chain pattern across all strategies
+  - Vector store management with Qdrant
+  - Sample invocations for each strategy
+- **Reference**: See [API Reference](docs/04_api_reference.md#session-09-advanced-retrieval-strategies)
+- **Location**: `/home/donbr/don-aie-cohort8/aie8-s09-adv-retrieval/session09-adv-retrieval.py`
 
-#### Interactive Notebooks
-**Purpose**: Hands-on learning and experimentation
+### Key Classes and Functions
 
-**Available notebooks**:
-1. **Session 7**: Synthetic data generation with Ragas
-2. **Session 8**: RAG evaluation metrics
-3. **Session 9**: Advanced retrieval strategies (main tutorial)
+- **State (TypedDict)** - State schema for baseline RAG graph with fields: question, context, response | Location: `session08-ragas-rag-evals.py:157-160`
 
-**Source**: All under `/notebooks/` directory
+- **AdjustedState (TypedDict)** - State schema for reranked RAG graph (identical to State) | Location: `session08-ragas-rag-evals.py:204-207`
 
-### Retrieval Strategies (The Heart of the System)
+- **retrieve(state)** - Retrieval node function for baseline graph, invokes retriever with question from state | Location: `session08-ragas-rag-evals.py:145-147`
 
-This project implements 7 distinct retrieval strategies, each with unique characteristics:
+- **generate(state)** - Generation node function, formats context and question into prompt, invokes LLM | Location: `session08-ragas-rag-evals.py:150-154`
 
-| Strategy | Type | Complexity | Latency | Cost | Best Use Case |
-|----------|------|------------|---------|------|---------------|
-| **1. Naive Retrieval** | Dense Vector | Low | Low | $ | Baseline semantic search, simple queries |
-| **2. BM25** | Sparse Keyword | Low | Very Low | Free | Exact keyword matching, technical terms |
-| **3. Multi-Query** | Query Enhancement | High | High | $$ | Ambiguous queries, improving recall |
-| **4. Parent Document** | Hierarchical | Medium | Medium | $ | Documents with sections, full context needed |
-| **5. Compression (Rerank)** | Post-Processing | High | High | $$$ | High precision requirements, critical queries |
-| **6. Ensemble** | Meta-Retrieval | Very High | Highest | $$$$ | Robust production systems, diverse queries |
-| **7. Semantic Chunking** | Smart Chunking | Medium | Medium | $$ | Documents with clear semantic boundaries |
+- **retrieve_reranked(state)** - Retrieval node with Cohere reranking (k=20 → top-5) | Location: `session08-ragas-rag-evals.py:195-201`
 
-**Strategy Selection Guide**:
-- **Need exact keywords?** → BM25
-- **High precision critical?** → Contextual Compression
-- **Queries are ambiguous?** → Multi-Query
-- **Want full document context?** → Parent Document
-- **Need robust performance?** → Ensemble
-- **Documents have topic transitions?** → Semantic Chunking
-- **Simple and fast?** → Naive Retrieval
+## Retrieval Strategies
 
-**Detailed documentation**: See [API Reference - Retrieval Strategies](docs/04_api_reference.md#retrieval-strategies) for complete implementation details and code examples.
+### Overview
 
----
+The project implements **seven distinct retrieval strategies**, each optimized for different scenarios and use cases. All strategies are implemented with a consistent LCEL chain pattern for fair comparison and easy integration.
+
+### Strategy Comparison
+
+| Strategy | Type | Use Case | Latency | Quality | Complexity |
+|----------|------|----------|---------|---------|------------|
+| 1. Naive | Dense Vector | General purpose, semantic search | Low (~100-200ms) | Baseline | Low |
+| 2. BM25 | Sparse/Keyword | Exact keyword matching, terminology | Low (~100-200ms) | Good for keywords | Low |
+| 3. Contextual Compression | Dense + Rerank | High precision, quality over speed | High (~500-800ms) | Excellent | Medium |
+| 4. Multi-Query | Dense + LLM | Complex queries, improved recall | Medium (~500-1000ms) | Very Good | Medium |
+| 5. Parent Document | Dense (Small-to-Big) | Precise search + broad context | Medium (~200-400ms) | Very Good | Medium-High |
+| 6. Ensemble | Hybrid (All Methods) | Production robustness | Very High (~1-2s) | Excellent | High |
+| 7. Semantic Chunking | Dense (Semantic Split) | Coherent document chunks | Low (~100-300ms) | Good | Medium |
+
+### Detailed Strategy Information
+
+1. **Naive Retrieval** - Standard cosine similarity search using OpenAI embeddings (text-embedding-3-small) with k=10. Best for general-purpose retrieval with clear semantic patterns. → [Details](docs/04_api_reference.md#1-naive-retrieval-cosine-similarity)
+
+2. **BM25** - Classic sparse retrieval using Best Matching 25 algorithm for term-based ranking. Excellent for keyword-heavy queries and exact term matching without embedding overhead. → [Details](docs/04_api_reference.md#2-bm25-sparse-retrieval)
+
+3. **Contextual Compression** - Two-stage approach: retrieve 10 candidates via naive search, then rerank using Cohere rerank-v3.5. Provides highest precision by filtering irrelevant documents. → [Details](docs/04_api_reference.md#3-contextual-compression-reranking)
+
+4. **Multi-Query** - Generates 3-5 query variations using LLM, retrieves for each variant, then returns union of results. Improves recall by capturing different query interpretations. → [Details](docs/04_api_reference.md#4-multi-query-retrieval)
+
+5. **Parent Document** - Small-to-big strategy: searches 750-char child chunks for precision, returns full parent documents for context. Balances accurate retrieval with comprehensive information. → [Details](docs/04_api_reference.md#5-parent-document-retrieval)
+
+6. **Ensemble** - Combines five retrieval strategies (BM25, Naive, Parent Document, Compression, Multi-Query) using Reciprocal Rank Fusion with equal weights. Most robust but slowest. → [Details](docs/04_api_reference.md#6-ensemble-retrieval)
+
+7. **Semantic Chunking** - Creates variable-sized chunks based on semantic coherence using percentile-based similarity thresholds. Preserves topically coherent segments. → [Details](docs/04_api_reference.md#7-semantic-chunking)
 
 ## Data Flows
 
 ### Key Flow Patterns
 
-The system implements 9 distinct data flows, each demonstrating different aspects of RAG retrieval:
+The project demonstrates three primary data flow patterns:
 
-#### 1. Data Ingestion Flow
-**Purpose**: Load CSV data with metadata preservation
+1. **Synthetic Data Generation** - PDF documents → Knowledge graph → Query synthesis → Golden test sets
+2. **RAG Evaluation** - Test questions → Retrieval → Generation → RAGAS metrics → Evaluation results
+3. **Retrieval Strategies** - Question → Strategy-specific retrieval → Context → LLM generation → Response
 
-**Path**: CSV → CSVLoader → Documents → Metadata extraction
+All flows follow the core RAG pattern: **Question → Retrieval → Context → Generation → Response**
 
-**Key insight**: Description field becomes `page_content`, all other CSV columns preserved as metadata for filtering.
+### Synthetic Data Generation Flow
 
-**Source**: [Data Flow Analysis - Flow 1](docs/03_data_flows.md#flow-1-data-ingestion-and-preparation-pipeline)
+**Overview**: Transforms raw PDF documents into structured knowledge graphs, then synthesizes diverse test questions with multiple difficulty levels.
 
-#### 2. Naive Retrieval Flow (Baseline)
-**Purpose**: Simple cosine similarity search
+- **Input**: PDF documents from data directory
+- **Process**:
+  1. Load documents with `DirectoryLoader` + `PyMuPDFLoader`
+  2. Build `KnowledgeGraph` with document nodes
+  3. Apply `default_transforms` for entity/relationship extraction via LLM
+  4. Generate synthetic test set with `TestsetGenerator` using three query types (50% SingleHop, 25% MultiHopAbstract, 25% MultiHopSpecific)
+  5. Create LangSmith dataset with inputs, outputs, and metadata
+- **Output**: Golden testset with user_input, reference answers, reference_contexts
+- **Details**: See [Data Flow Analysis](docs/03_data_flows.md#synthetic-data-generation-flow-session-07)
 
-**Path**: Query → Embed → Vector similarity search → Top-k documents → Context
+### RAG Evaluation Flow
 
-**Performance**: Fastest, cheapest, good baseline
+**Overview**: Evaluates RAG systems using LangGraph workflows and comprehensive RAGAS metrics, comparing baseline vs. reranked retrieval.
 
-**Source**: [Data Flow Analysis - Flow 2](docs/03_data_flows.md#flow-2-naive-vector-retrieval-flow)
+- **Input**: Golden testset from synthetic data generation
+- **Process**:
+  1. Split documents into 500-char chunks with overlap
+  2. Create Qdrant vector store with OpenAI embeddings
+  3. Build LangGraph with retrieve → generate nodes
+  4. For each test question: invoke graph, collect response + contexts
+  5. Run RAGAS evaluation with 6 metrics
+- **Output**: Evaluation results with scores for context recall, faithfulness, factual correctness, relevancy, entity recall, noise sensitivity
+- **Details**: See [Data Flow Analysis](docs/03_data_flows.md#rag-evaluation-flow-session-08)
 
-#### 3. BM25 Flow (Lexical)
-**Purpose**: Keyword-based sparse retrieval
+### Retrieval Strategy Flows
 
-**Path**: Query → Tokenize → BM25 scoring → Ranked documents → Context
+**Overview**: Each of the seven retrieval strategies implements a unique approach to finding relevant documents, all using the consistent LCEL chain pattern.
 
-**Advantage**: No embedding needed, excellent for exact terms
+- **Common Pattern**: All strategies follow the LCEL chain structure:
+  ```
+  {context: question | retriever, question: question}
+  → RunnablePassthrough.assign(context)
+  → {response: prompt | LLM, context: context}
+  ```
 
-**Source**: [Data Flow Analysis - Flow 3](docs/03_data_flows.md#flow-3-bm25-sparse-retrieval-flow)
+- **Variations**: Each strategy differs only in the retriever implementation:
+  - **Naive**: Direct vector similarity search (k=10)
+  - **BM25**: Inverted index with term matching
+  - **Compression**: Naive retrieval (k=10) → Cohere reranking
+  - **Multi-Query**: LLM query expansion → parallel retrieval → fusion
+  - **Parent Document**: Child chunk search → parent document return
+  - **Ensemble**: Parallel execution of 5 retrievers → RRF fusion
+  - **Semantic**: Semantic chunking → vector search
 
-#### 4. Multi-Query Flow (Recall)
-**Purpose**: Query expansion for improved recall
+- **Details**: See [Data Flow Analysis](docs/03_data_flows.md#advanced-retrieval-flows-session-09)
 
-**Path**: Query → LLM generates variations → Parallel retrievals → Deduplicate → Context
+### State Management
 
-**Trade-off**: Higher cost/latency for better coverage
+**LangGraph State Pattern**: Uses TypedDict classes (State, AdjustedState) to manage data flow through graph nodes.
 
-**Sequence diagram**:
-```
-User Query → LLM (3-5 variations) → [Retrieval 1, Retrieval 2, ...] → Merge → Context
-```
+State transitions: `Initial {question}` → `retrieve() adds {context}` → `generate() adds {response}` → `Final {question, context, response}`
 
-**Source**: [Data Flow Analysis - Flow 4](docs/03_data_flows.md#flow-4-multi-query-retrieval-flow)
+- **Details**: See [Data Flow Analysis](docs/03_data_flows.md#data-state-transitions)
 
-#### 5. Parent Document Flow (Small-to-Big)
-**Purpose**: Precise matching with complete context
+## Evaluation Framework
 
-**Architecture**:
-```
-Setup Phase: Documents → Split children → Store in vector DB → Store parents in InMemoryStore
-Query Phase: Query → Search children → Get parent IDs → Return full parents
-```
+### RAGAS Metrics
 
-**Why it works**: Small chunks match precisely, parent documents provide full context to LLM.
+The project uses six RAGAS metrics for comprehensive RAG evaluation:
 
-**Source**: [Data Flow Analysis - Flow 5](docs/03_data_flows.md#flow-5-parent-document-retrieval-flow)
+1. **LLM Context Recall** - Measures if all ground truth information is present in retrieved context. Evaluates recall quality of retrieval step.
 
-#### 6. Compression Flow (Two-Stage)
-**Purpose**: Retrieve candidates, then rerank for precision
+2. **Faithfulness** - Measures if the generated answer is faithful to the retrieved context. Detects hallucinations and ensures grounding.
 
-**Stages**:
-1. **Stage 1**: Naive retriever gets k=10 candidates (broad recall)
-2. **Stage 2**: Cohere rerank scores query-document pairs (high precision)
+3. **Factual Correctness** - Evaluates factual accuracy of the generated answer against reference. Measures generation quality.
 
-**Result**: More accurate than embeddings alone due to cross-encoder scoring.
+4. **Semantic Similarity** - Computes semantic similarity between generated response and reference answer using embeddings.
 
-**Source**: [Data Flow Analysis - Flow 6](docs/03_data_flows.md#flow-6-contextual-compression-reranking-flow)
+5. **LLM Context Precision** - Measures precision of retrieved context. Identifies irrelevant documents in retrieval results.
 
-#### 7. Ensemble Flow (Meta-Retrieval)
-**Purpose**: Combine strengths of multiple strategies
+6. **LLM Context Utilization** - Evaluates how well the LLM utilizes the provided context in generating responses.
 
-**Algorithm**: Reciprocal Rank Fusion (RRF)
-```
-RRF(doc) = Σ (weight_i / (60 + rank_i(doc)))
-```
+**Details**: See [API Reference](docs/04_api_reference.md#ragas-evaluation)
 
-**Retriever combination**:
-- BM25 (keywords) + Naive (semantic) + Multi-Query (recall) + Parent Document (context) + Compression (precision)
+### LangSmith Integration
 
-**Benefits**: Most robust across query types, reduces individual weaknesses.
+LangSmith provides distributed tracing, evaluation platform, and dataset management:
 
-**Source**: [Data Flow Analysis - Flow 7](docs/03_data_flows.md#flow-7-ensemble-retrieval-flow)
+- **Tracing**: Automatic logging of all LangChain executions with hierarchical spans
+- **Captured Metrics**: Latency (retrieval, LLM, total), tokens (prompt, completion, total), cost (estimated per call), quality (evaluator scores)
+- **Custom Evaluators**: QA evaluator (correctness), labeled helpfulness (with reference), custom criteria (dopeness, creativity)
+- **Dataset Management**: Create, store, and version test datasets with inputs/outputs/metadata
+- **Evaluation Platform**: Run evaluate() with chains and evaluators, view results in UI with comparisons and trends
 
-#### 8. Semantic Chunking Flow
-**Purpose**: Create chunks based on semantic coherence
-
-**Process**:
-1. Split document into sentences
-2. Embed each sentence
-3. Calculate inter-sentence similarity
-4. Identify semantic breaks (percentile threshold)
-5. Group sentences into coherent chunks
-
-**Trade-off**: Higher setup cost (embed every sentence) for better chunk quality.
-
-**Source**: [Data Flow Analysis - Flow 8](docs/03_data_flows.md#flow-8-semantic-chunking-preparation-flow)
-
-#### 9. Complete RAG Chain Flow
-**Purpose**: End-to-end LCEL pipeline execution
-
-**LCEL stages**:
+**Configuration**:
 ```python
-Stage 1: Build context dict     {"context": retriever(question), "question": question}
-Stage 2: Passthrough context    RunnablePassthrough.assign(context=...)
-Stage 3: Generate response       {"response": prompt | llm, "context": context}
+os.environ["LANGCHAIN_TRACING_V2"] = "true"
+os.environ["LANGCHAIN_API_KEY"] = "your-api-key"
+os.environ["LANGCHAIN_PROJECT"] = f"My-Project-{uuid}"
 ```
 
-**Output**: `{"response": AIMessage, "context": [Documents]}`
+## External Dependencies
 
-**Source**: [Data Flow Analysis - Flow 9](docs/03_data_flows.md#flow-9-complete-rag-chain-execution-flow)
+### APIs and Services
 
-### Data Pipeline Overview
+- **OpenAI** - LLM and embeddings provider
+  - Models used: gpt-4.1-nano (fast generation), gpt-4.1-mini (balanced), gpt-4.1 (high quality)
+  - Embeddings: text-embedding-3-small (1536-dim, primary), text-embedding-3-large (alternative)
+  - Purpose: RAG response generation, query expansion, evaluation, embeddings for vector search
 
-High-level data movement through the system:
+- **Cohere** - Reranking service
+  - Model used: rerank-v3.5 (state-of-art cross-encoder)
+  - Purpose: Contextual compression retrieval, improving precision through reranking
 
+- **LangSmith** - Observability and evaluation platform
+  - Features used: Distributed tracing (LANGCHAIN_TRACING_V2), evaluation platform, dataset management, custom evaluators
+  - Purpose: Debugging, cost tracking, performance monitoring, RAG evaluation workflows
+
+- **Qdrant** - Vector database
+  - Configuration: In-memory storage (`:memory:`), COSINE distance metric
+  - Collections: Synthetic_Usecases, full_documents, Semantic_Chunks, Use Case RAG
+  - Purpose: Document embedding storage, similarity search, parent-child retrieval
+
+### Key Python Packages
+
+**LangChain Ecosystem**:
+- `langchain>=0.3.14` - Core RAG framework
+- `langchain-openai>=0.3.3` - OpenAI integration
+- `langchain-community>=0.3.16` - Community integrations (BM25, document loaders)
+- `langchain-cohere==0.4.4` - Cohere reranking
+- `langchain-qdrant>=0.2.0` - Qdrant vector store
+- `langgraph>=0.2.69` - Graph-based workflows
+
+**Evaluation & Processing**:
+- `ragas==0.2.10` - RAG evaluation framework
+- `pymupdf>=1.24.0` - PDF document loading
+- `qdrant-client>=1.7.0` - Qdrant Python client
+
+**Complete List**: See [API Reference](docs/04_api_reference.md#dependencies)
+
+## Configuration
+
+### Environment Variables Required
+
+```bash
+# Required for all sessions
+OPENAI_API_KEY=your_openai_key_here
+
+# Required for sessions 08 & 09
+COHERE_API_KEY=your_cohere_key_here
+
+# Required for LangSmith tracing and evaluation
+LANGSMITH_API_KEY=your_langsmith_key_here
+LANGSMITH_TRACING=true
+LANGSMITH_PROJECT=Your-Project-Name
 ```
-CSV Data
-   ↓
-Documents (with metadata)
-   ↓
-Embeddings (1536-dim vectors)
-   ↓
-Vector Stores (3x Qdrant collections)
-   ↓
-Retrievers (7 strategies)
-   ↓
-RAG Chains (LCEL)
-   ↓
-LLM Generation (GPT-4.1-nano)
-   ↓
-Response + Context
-```
 
-**Key characteristics**:
-- **Single data source**: One CSV file feeds all strategies
-- **Multiple vector stores**: 3 different Qdrant collections for different chunk types
-- **Shared generation**: All strategies use same LLM and prompt for fair comparison
-- **Transparent output**: Returns both response and source documents
+### Configuration Files
 
-See [Architecture Diagrams - Data Flow](diagrams/02_architecture_diagrams.md#data-flow) for visual representation.
+- **config.py** - Central configuration for paths and settings
+  - Path configuration: PROJECT_ROOT, DATA_DIR, NOTEBOOKS_DIR, DOCS_DIR
+  - Model defaults: DEFAULT_CHUNK_SIZE=500, DEFAULT_CHUNK_OVERLAP=50
+  - Qdrant settings: QDRANT_COLLECTION_NAME="Use Case RAG", QDRANT_LOCATION=":memory:"
 
----
+**Details**: See [API Reference](docs/04_api_reference.md#configuration-module)
 
 ## Getting Started
 
 ### Prerequisites
 
-**Required**:
-- Python 3.10 or higher
-- API keys for:
-  - OpenAI (embeddings + LLM)
-  - Cohere (reranking)
-  - LangSmith (optional, for tracing)
-
-**Recommended**:
-- Jupyter Lab or VS Code (for notebooks)
-- 8GB+ RAM (for in-memory vector stores)
-- Git (for cloning repository)
+- Python 3.9+
+- API keys for OpenAI, Cohere, and LangSmith
+- 8GB+ RAM recommended for vector operations
+- Basic understanding of RAG concepts and LangChain
 
 ### Installation
 
 ```bash
 # Clone repository
-git clone <repository-url>
 cd aie8-s09-adv-retrieval
 
-# Install dependencies with uv (recommended)
-uv sync
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Or with pip
+# Install dependencies
 pip install -r requirements.txt
 
-# Verify installation
-python config.py
+# Set environment variables
+export OPENAI_API_KEY="your_key"
+export COHERE_API_KEY="your_key"
+export LANGSMITH_API_KEY="your_key"
 ```
 
-**Expected output**:
-```
-Project Root: /home/donbr/don-aie-cohort8/aie8-s09-adv-retrieval
-Data Directory: /home/donbr/don-aie-cohort8/aie8-s09-adv-retrieval/data
-Data Directory Exists: True
-PDF Files: /home/donbr/don-aie-cohort8/aie8-s09-adv-retrieval/data/*.pdf
-```
+### Running the Sessions
 
-### Configuration
-
-**API Keys** - Set environment variables:
-
-```python
-import os
-import getpass
-
-# Required
-os.environ["OPENAI_API_KEY"] = getpass.getpass("OpenAI API Key:")
-os.environ["COHERE_API_KEY"] = getpass.getpass("Cohere API Key:")
-
-# Optional (for tracing)
-os.environ["LANGCHAIN_API_KEY"] = getpass.getpass("LangChain API Key:")
-os.environ["LANGCHAIN_TRACING_V2"] = "true"
-os.environ["LANGCHAIN_PROJECT"] = "advanced-retrieval-demo"
-```
-
-**Or use `.env` file** (recommended):
+#### Session 07: Generate Synthetic Data
 
 ```bash
-# .env
-OPENAI_API_KEY=sk-...
-COHERE_API_KEY=...
-LANGCHAIN_API_KEY=...
-LANGCHAIN_TRACING_V2=true
-LANGCHAIN_PROJECT=advanced-retrieval-demo
+python session07-sdg-ragas-langsmith.py
 ```
 
-Then load in Python:
-```python
-from dotenv import load_dotenv
-load_dotenv()
-```
+**What it does**:
+- Loads PDF documents from data directory
+- Builds knowledge graph with entity/relationship extraction
+- Generates 10 synthetic test questions (50% single-hop, 25% multi-hop abstract, 25% multi-hop specific)
+- Creates LangSmith dataset with golden testset
+- Evaluates baseline vs. dope RAG chains with custom criteria
 
-### Running Your First Retrieval
-
-**Option 1: Interactive Notebook** (recommended for learning)
+#### Session 08: Evaluate RAG
 
 ```bash
-jupyter lab notebooks/session09-adv-retrieval.ipynb
+python session08-ragas-rag-evals.py
 ```
 
-Run cells sequentially to explore each strategy.
+**What it does**:
+- Splits documents into 500-char chunks
+- Creates baseline and reranked retrieval graphs with LangGraph
+- Generates synthetic testset with RAGAS
+- Runs both graphs on test questions
+- Evaluates with 6 RAGAS metrics (context recall, faithfulness, factual correctness, relevancy, entity recall, noise sensitivity)
+- Compares baseline vs. reranked performance
 
-**Option 2: Python Script**
+#### Session 09: Compare Retrieval Strategies
 
 ```bash
-python adv-retrieval.py
+python session09-adv-retrieval.py
 ```
 
-Enter API keys when prompted, then observe each strategy's output.
+**What it does**:
+- Loads CSV project data
+- Implements seven retrieval strategies with consistent LCEL pattern
+- Creates Qdrant vector stores for each strategy
+- Provides sample invocations for testing
+- Enables performance comparison across strategies
 
-**Option 3: Quick Test**
+### Using Jupyter Notebooks
+
+All sessions have corresponding Jupyter notebooks for interactive exploration:
+
+```bash
+# Start Jupyter
+jupyter notebook
+
+# Navigate to notebooks directory
+# Open: session07-sdg-ragas-langsmith.ipynb
+# Open: session08-ragas-rag-evals.ipynb
+# Open: session09-adv-retrieval.ipynb
+```
+
+Notebooks include:
+- Detailed markdown explanations
+- Step-by-step code execution
+- Visualization of results
+- Discussion questions and breakout activities
+
+## Usage Examples
+
+### Quick Example: Running a Retrieval Strategy
 
 ```python
-from config import DATA_DIR
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_community.vectorstores import Qdrant
-from langchain_community.document_loaders.csv_loader import CSVLoader
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from operator import itemgetter
 
-# Load data
-loader = CSVLoader(file_path=f"{DATA_DIR}/Projects_with_Domains.csv")
-docs = loader.load()
-
-# Initialize
+# Setup
 embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 chat_model = ChatOpenAI(model="gpt-4.1-nano")
 
 # Create vector store
 vectorstore = Qdrant.from_documents(
-    docs, embeddings, location=":memory:", collection_name="test"
+    documents,
+    embeddings,
+    location=":memory:",
+    collection_name="MyCollection"
 )
-retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
 
-# Build chain
-prompt = ChatPromptTemplate.from_template(
-    "Use context to answer.\n\nQ: {question}\n\nContext: {context}"
-)
-chain = (
+# Create retriever
+retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
+
+# Define prompt
+RAG_TEMPLATE = """Use the context below to answer the question.
+Context: {context}
+Question: {question}"""
+
+rag_prompt = ChatPromptTemplate.from_template(RAG_TEMPLATE)
+
+# Build LCEL chain
+retrieval_chain = (
     {"context": itemgetter("question") | retriever, "question": itemgetter("question")}
     | RunnablePassthrough.assign(context=itemgetter("context"))
-    | {"response": prompt | chat_model, "context": itemgetter("context")}
+    | {"response": rag_prompt | chat_model, "context": itemgetter("context")}
 )
 
-# Query
-result = chain.invoke({"question": "What is the most common project domain?"})
-print(f"Answer: {result['response'].content}")
-print(f"Retrieved {len(result['context'])} documents")
+# Invoke
+result = retrieval_chain.invoke({"question": "What is AI?"})
+print(result["response"].content)
 ```
 
----
+### Quick Example: Evaluating with RAGAS
 
-## Usage Guide
+```python
+from ragas import evaluate, EvaluationDataset
+from ragas.metrics import Faithfulness, FactualCorrectness
+from ragas.llms import LangchainLLMWrapper
+from langchain_openai import ChatOpenAI
 
-### Choosing a Retrieval Strategy
+# Prepare evaluation dataset
+# (Assumes you have responses and retrieved_contexts populated)
+eval_dataset = EvaluationDataset.from_pandas(dataset_df)
 
-**Decision tree**:
+# Configure evaluator
+evaluator_llm = LangchainLLMWrapper(ChatOpenAI(model="gpt-4.1-mini"))
 
+# Run evaluation
+result = evaluate(
+    dataset=eval_dataset,
+    metrics=[
+        Faithfulness(),
+        FactualCorrectness()
+    ],
+    llm=evaluator_llm
+)
+
+print(result)
 ```
-Start Here
-    │
-    ├─ Need exact keyword matching? ──YES──> BM25
-    │                                   NO
-    ├─ High precision critical? ──YES──> Contextual Compression (Reranking)
-    │                              NO
-    ├─ Query is ambiguous/multi-faceted? ──YES──> Multi-Query
-    │                                       NO
-    ├─ Documents have sections, need full context? ──YES──> Parent Document
-    │                                                 NO
-    ├─ Want robust performance across query types? ──YES──> Ensemble
-    │                                                 NO
-    ├─ Documents have clear topic boundaries? ──YES──> Semantic Chunking
-    │                                           NO
-    └─ Default/baseline ────> Naive Retrieval
+
+## Performance Considerations
+
+### Latency by Strategy
+
+**Approximate single-query latency**:
+
+- **Fastest (100-200ms)**: Naive Retrieval, BM25
+- **Fast (100-300ms)**: Semantic Chunking (once chunks created)
+- **Medium (200-400ms)**: Parent Document Retrieval
+- **Slow (500-1000ms)**: Multi-Query Retrieval, Contextual Compression
+- **Very Slow (1-2s)**: Ensemble Retrieval
+
+**Factors affecting latency**: Network latency to APIs, corpus size, embedding model, k parameter, LLM model speed
+
+### Quality vs. Speed Trade-offs
+
+**High Precision Strategies** (Quality over Speed):
+- Contextual Compression with reranking
+- Ensemble retrieval combining multiple methods
+- Trade-off: +15-20% quality improvement, +300-500ms latency
+
+**High Recall Strategies** (Coverage over Precision):
+- Multi-Query with query expansion
+- Parent Document with full context
+- Trade-off: More comprehensive results, potential noise increase
+
+**Balanced Strategies**:
+- Naive retrieval for general purpose
+- BM25 for keyword-heavy queries
+- Semantic chunking for coherent results
+
+**Recommended by Use Case**:
+- **Accuracy Critical**: Ensemble + Reranking (slow but best quality)
+- **Speed Critical**: Naive or BM25 (fast but lower quality)
+- **Balanced**: Contextual Compression (good quality, moderate speed)
+- **Long-form Context**: Parent Document (preserves coherence)
+- **Keyword-Heavy**: BM25 or BM25 + Ensemble (exact matching)
+
+### Resource Usage
+
+**Token Consumption**:
+- Naive (k=10): ~5000 tokens context
+- Reranked (top-5): ~2500 tokens context (50% reduction)
+- Parent Document: 2000+ tokens per document (2-3× naive)
+- Multi-Query: +500-1000 tokens per query variant
+
+**Cost Optimization**:
+- Use gpt-4.1-nano for generation ($0.15/1M input tokens)
+- Use text-embedding-3-small ($0.02/1M tokens)
+- Aggressive reranking: retrieve many, return few
+- Cache embeddings when possible
+
+**Memory Considerations**:
+- In-memory Qdrant: ~1-2 MB per 1000 documents
+- Parent document InMemoryStore: Can consume GBs for large corpora
+- Production: Use persistent storage (disk Qdrant, Redis docstore)
+
+**Details**: See [API Reference](docs/04_api_reference.md#performance-considerations)
+
+## Best Practices
+
+### Strategy Selection
+
+**When to use each retrieval strategy**:
+
+- **Naive Retrieval**: Baseline, general purpose, semantically well-structured documents, speed critical
+- **BM25**: Keyword queries, specific terminology, exact matching important, no embedding infrastructure
+- **Contextual Compression**: Quality over speed, refining initial retrieval, complex nuanced queries
+- **Multi-Query**: Ambiguous queries, improving recall, vocabulary mismatch, query interpretation variety
+- **Parent Document**: Hierarchical documents, precise search + broad context, avoiding information loss
+- **Ensemble**: Production robustness, different query types, hedge against strategy weaknesses, quality critical
+- **Semantic Chunking**: Documents with clear semantic structure, chunk quality critical, slower preprocessing acceptable
+
+### Configuration Tips
+
+**Optimal settings for different use cases**:
+
+```python
+# High-precision, cost-aware
+retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
+compressor = CohereRerank(model="rerank-v3.5", top_n=3)
+
+# High-recall, comprehensive
+multi_query_retriever = MultiQueryRetriever.from_llm(
+    retriever=vectorstore.as_retriever(search_kwargs={"k": 20}),
+    llm=chat_model
+)
+
+# Balanced production
+ensemble = EnsembleRetriever(
+    retrievers=[bm25, naive, compression],
+    weights=[0.3, 0.3, 0.4]  # Favor reranked
+)
 ```
 
-**Strategy characteristics**:
+### Evaluation Workflow
 
-| When... | Use | Why |
-|---------|-----|-----|
-| Query has specific technical terms | BM25 | Exact keyword matching outperforms semantic |
-| Precision is more important than speed | Compression | Reranking filters to most relevant |
-| User query might be poorly worded | Multi-Query | LLM reformulations improve recall |
-| Documents are long with distinct sections | Parent Document | Search precise, return complete |
-| Query types are unpredictable | Ensemble | Combines multiple approaches |
-| Content has natural semantic structure | Semantic Chunking | Preserves topic coherence |
-| Starting point or simple use case | Naive | Fast, cheap, good baseline |
+**How to effectively evaluate retrieval strategies**:
+
+1. **Generate Golden Testset**: Use RAGAS synthetic data generation with diverse query types
+2. **Prepare Evaluation Dataset**: Run each strategy on testset, collect responses and contexts
+3. **Configure RAGAS Metrics**: Select appropriate metrics (context recall, faithfulness, factual correctness)
+4. **Run Evaluation**: Use `RunConfig(timeout=360)` to avoid timeouts
+5. **Compare Results**: Analyze metric scores across strategies, consider latency and cost
+6. **Iterate**: Tune parameters based on results, re-evaluate
+
+## Architecture Insights
+
+### Design Principles
+
+1. **Consistency**: All retrieval strategies use identical LCEL chain pattern for fair comparison
+2. **Modularity**: Each session is self-contained with no cross-dependencies
+3. **Traceability**: LangSmith integration provides full observability into every operation
+4. **Educational Focus**: Code includes extensive documentation, examples, and discussion questions
+5. **Production Patterns**: Implementations follow LangChain best practices for real-world use
 
 ### Common Patterns
 
-#### Pattern 1: Hybrid Search (BM25 + Semantic)
-
-**Purpose**: Best of both lexical and semantic worlds
-
+**LCEL Chain Construction**:
 ```python
-from langchain_community.retrievers import BM25Retriever
-from langchain.retrievers import EnsembleRetriever
-
-# Create both retrievers
-bm25 = BM25Retriever.from_documents(documents)
-semantic = vectorstore.as_retriever(search_kwargs={"k": 10})
-
-# Combine with 50/50 weighting
-hybrid = EnsembleRetriever(
-    retrievers=[bm25, semantic],
-    weights=[0.5, 0.5]
-)
-
-# Use in chain
 chain = (
-    {"context": itemgetter("question") | hybrid, "question": itemgetter("question")}
+    {"context": itemgetter("question") | retriever, "question": itemgetter("question")}
     | RunnablePassthrough.assign(context=itemgetter("context"))
     | {"response": rag_prompt | chat_model, "context": itemgetter("context")}
 )
 ```
 
-**When to use**: Production systems with diverse query types, when you can't predict whether queries will be keyword-based or semantic.
-
-#### Pattern 2: Two-Stage Retrieval (Recall → Precision)
-
-**Purpose**: Cast wide net, then filter to best results
-
+**LangGraph State Management**:
 ```python
-from langchain.retrievers.multi_query import MultiQueryRetriever
-from langchain.retrievers.contextual_compression import ContextualCompressionRetriever
-from langchain_cohere import CohereRerank
+def retrieve(state: State) -> dict:
+    return {"context": retriever.invoke(state["question"])}
 
-# Stage 1: High recall via multi-query
-base = vectorstore.as_retriever(search_kwargs={"k": 20})
-recall_retriever = MultiQueryRetriever.from_llm(retriever=base, llm=chat_model)
+def generate(state: State) -> dict:
+    return {"response": llm.invoke(format_prompt(state))}
 
-# Stage 2: High precision via reranking
-reranker = CohereRerank(model="rerank-v3.5")
-precision_retriever = ContextualCompressionRetriever(
-    base_compressor=reranker,
-    base_retriever=recall_retriever
-)
-
-# Use precision_retriever in chain
+graph = StateGraph(State).add_sequence([retrieve, generate])
 ```
 
-**When to use**: Research applications, when missing relevant documents is costly, when precision and recall both matter.
-
-#### Pattern 3: Metadata Filtering
-
-**Purpose**: Constrain retrieval to specific document subsets
-
+**Two-Stage Retrieval**:
 ```python
-# Filter by project domain
-filtered_retriever = vectorstore.as_retriever(
-    search_kwargs={
-        "k": 10,
-        "filter": {"Project Domain": "Finance / FinTech"}
-    }
-)
-
-# Use in chain for domain-specific queries
-result = chain.invoke({
-    "question": "What fintech projects scored highest?"
-})
-```
-
-**When to use**: Multi-tenant systems, when documents have clear categories, when users know their domain.
-
-**See**: [API Reference - Common Patterns](docs/04_api_reference.md#common-patterns) for more examples including fallback chains and routing.
-
----
-
-## Performance Considerations
-
-### Strategy Comparison
-
-| Strategy | API Calls | Latency | Cost/Query | Precision | Recall | Production Ready? |
-|----------|-----------|---------|------------|-----------|--------|-------------------|
-| Naive | Low (1-2) | ~200ms | $0.001 | ⭐⭐⭐ | ⭐⭐⭐ | ✅ Yes |
-| BM25 | None | ~50ms | Free | ⭐⭐⭐ | ⭐⭐⭐ | ✅ Yes |
-| Multi-Query | High (3-4) | ~800ms | $0.003 | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⚠️ Expensive |
-| Parent Document | Low (1-2) | ~250ms | $0.001 | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ✅ Yes |
-| Compression | High (2-3) | ~600ms | $0.005 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⚠️ Expensive |
-| Ensemble | Very High (5-10) | ~1500ms | $0.010 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⚠️ Very Expensive |
-| Semantic Chunking | High (setup) | ~200ms (query) | $0.002 | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ✅ Yes |
-
-**Notes**:
-- Costs are approximate and vary based on document/query length
-- Latency measured on typical queries, can vary significantly
-- Precision/Recall ratings are relative, not absolute metrics
-
-### Optimization Tips
-
-#### 1. Cache Embeddings
-**Problem**: Re-embedding same documents wastes money and time
-
-**Solution**:
-```python
-from langchain.embeddings import CacheBackedEmbeddings
-from langchain.storage import LocalFileStore
-
-store = LocalFileStore("./embedding_cache")
-cached_embeddings = CacheBackedEmbeddings.from_bytes_store(
-    embeddings, store, namespace="text-embedding-3-small"
-)
-
-# Use cached_embeddings instead of embeddings
-vectorstore = Qdrant.from_documents(docs, cached_embeddings, ...)
-```
-
-**Impact**: 100% cost savings on repeated embeddings, 10-50x faster document loading.
-
-#### 2. Limit Retrieved Documents
-**Problem**: Retrieving too many documents increases cost and latency
-
-**Solution**:
-```python
-# Start with fewer documents
-retriever = vectorstore.as_retriever(search_kwargs={"k": 5})  # Instead of 10
-
-# For reranking, retrieve more initially but filter aggressively
-base = vectorstore.as_retriever(search_kwargs={"k": 20})
-compression = ContextualCompressionRetriever(
-    base_compressor=reranker,
-    base_retriever=base
+# Over-retrieve then compress
+base_retriever = vectorstore.as_retriever(search_kwargs={"k": 20})
+compressor = CohereRerank(model="rerank-v3.5")
+compression_retriever = ContextualCompressionRetriever(
+    base_compressor=compressor, base_retriever=base_retriever
 )
 ```
 
-**Impact**: 2x faster for k=5 vs k=10, proportional cost reduction.
+### Modularity
 
-#### 3. Use Async for Concurrency
-**Problem**: Sequential processing wastes time
+The codebase is organized for maximum learning value:
 
-**Solution**:
-```python
-import asyncio
-
-async def process_queries(questions):
-    tasks = [chain.ainvoke({"question": q}) for q in questions]
-    return await asyncio.gather(*tasks)
-
-results = asyncio.run(process_queries([
-    "Question 1", "Question 2", "Question 3"
-]))
-```
-
-**Impact**: Near-linear speedup for independent queries.
-
-#### 4. Batch Embedding
-**Problem**: Individual API calls are inefficient
-
-**Solution**:
-```python
-embeddings = OpenAIEmbeddings(
-    model="text-embedding-3-small",
-    chunk_size=1000  # Batch size for API calls
-)
-```
-
-**Impact**: Higher throughput, more efficient API usage.
-
-**See**: [API Reference - Performance Optimization](docs/04_api_reference.md#performance-optimization) for more tips.
-
----
-
-## Architecture Deep Dives
-
-### Detailed Documentation
-
-For comprehensive technical details, see:
-
-#### 1. [Component Inventory](docs/01_component_inventory.md)
-**What it covers**:
-- Complete module and function catalog (2 Python modules, 3 notebooks)
-- Implementation details for all 7 retrieval strategies
-- Line-by-line source references
-- Dependency analysis (14 external packages)
-- Data assets and configuration
-
-**Key insights**:
-- No custom classes defined - framework-driven architecture
-- 7 LCEL chains following identical pattern
-- Pattern-based implementation for educational clarity
-- Minimal abstraction over LangChain primitives
-
-**When to read**: Understanding implementation details, contributing code, debugging specific components.
-
-#### 2. [Architecture Diagrams](diagrams/02_architecture_diagrams.md)
-**What it covers**:
-- System architecture visualization (Mermaid diagrams)
-- Component relationships and dependencies
-- Class hierarchies from LangChain
-- Module dependency graph
-- Data flow diagrams
-- Retrieval strategy taxonomy
-
-**Key insights**:
-- Layered architecture with 8 distinct layers
-- 3 separate Qdrant vector stores for different strategies
-- Hub-and-spoke pattern with document corpus at center
-- Ensemble combines 5 retrievers using RRF
-
-**When to read**: Getting architectural overview, understanding system design, planning extensions.
-
-#### 3. [Data Flow Analysis](docs/03_data_flows.md)
-**What it covers**:
-- 9 detailed sequence diagrams showing execution flows
-- Step-by-step breakdowns of each retrieval strategy
-- LCEL chain execution pipeline
-- Data transformation at each stage
-
-**Key insights**:
-- All flows share common entry (user query) and exit (LLM response)
-- Two-stage patterns in Compression and Parent Document retrievers
-- Parallel execution in Ensemble retriever
-- Semantic chunking uses percentile thresholding
-
-**When to read**: Debugging retrieval issues, understanding execution order, optimizing performance.
-
-#### 4. [API Reference](docs/04_api_reference.md)
-**What it covers**:
-- Complete API documentation for all 7 strategies
-- Configuration module reference
-- Usage patterns and best practices
-- Common patterns (hybrid search, two-stage retrieval)
-- Troubleshooting guide
-- Performance optimization tips
-
-**Key insights**:
-- All chains follow same LCEL pattern with different retrievers
-- Strategy selection decision tree
-- Cost vs performance trade-offs
-- Caching and batching recommendations
-
-**When to read**: Implementing retrieval strategies, troubleshooting errors, optimizing costs.
-
----
-
-## Key Insights
-
-### Architectural Highlights
-
-#### 1. Framework-Driven Design Eliminates Custom Code
-**Insight**: The entire system uses zero custom classes, relying on LangChain primitives composed via LCEL.
-
-**Why it matters**:
-- Lower maintenance burden
-- Battle-tested implementations
-- Easy to understand for LangChain users
-- Faster development
-
-**Where to learn more**: [Component Inventory - Architecture Notes](docs/01_component_inventory.md#architecture-notes)
-
-#### 2. Consistent LCEL Pattern Enables Fair Comparison
-**Insight**: All 7 retrieval strategies use identical chain structure, LLM, and prompt - only the retriever varies.
-
-**Pattern**:
-```python
-{"context": itemgetter("question") | RETRIEVER, "question": itemgetter("question")}
-| RunnablePassthrough.assign(context=itemgetter("context"))
-| {"response": rag_prompt | chat_model, "context": itemgetter("context")}
-```
-
-**Why it matters**: Isolates retrieval as the only variable, making performance comparisons scientifically valid.
-
-**Where to learn more**: [Component Inventory - Key Design Patterns](docs/01_component_inventory.md#key-design-patterns)
-
-#### 3. Multiple Vector Stores Optimize for Different Strategies
-**Insight**: System uses 3 separate Qdrant collections, each optimized for specific retrieval approaches.
-
-**Collections**:
-- `Synthetic_Usecases`: Standard chunks for naive retrieval
-- `Synthetic_Usecase_Data_Semantic_Chunks`: Semantic chunks with variable boundaries
-- `full_documents`: Child chunks for parent document retrieval
-
-**Why it matters**: One-size-fits-all vector stores are suboptimal; different strategies need different chunking.
-
-**Where to learn more**: [Architecture Diagrams - System Architecture](diagrams/02_architecture_diagrams.md#system-architecture)
-
-#### 4. Ensemble Retriever Demonstrates Meta-Retrieval Pattern
-**Insight**: Ensemble combines 5 retrievers (BM25, Naive, Multi-Query, Parent, Compression) using Reciprocal Rank Fusion.
-
-**Algorithm**: `RRF(d) = Σ (weight_i / (60 + rank_i(d)))`
-
-**Why it matters**:
-- Most robust approach across query types
-- Combines lexical and semantic search
-- Production-ready pattern for high-stakes applications
-
-**Trade-offs**: Highest latency and cost, but best overall performance.
-
-**Where to learn more**: [Data Flow Analysis - Flow 7](docs/03_data_flows.md#flow-7-ensemble-retrieval-flow)
-
-#### 5. Small-to-Big Strategy Balances Precision and Context
-**Insight**: Parent Document Retriever searches small chunks (precise) but returns full documents (contextual).
-
-**Architecture**: Child chunks in vector store, parent documents in InMemoryStore, linked by IDs.
-
-**Why it matters**: Solves fundamental trade-off in chunk-based retrieval - small chunks match better, large chunks provide better context for LLMs.
-
-**Where to learn more**: [API Reference - Strategy 5](docs/04_api_reference.md#strategy-5-parent-document-retrieval)
-
-#### 6. Semantic Chunking Adapts to Content Structure
-**Insight**: Instead of fixed-size chunks, splits documents at semantic boundaries using sentence embedding similarity.
-
-**Methods**: Percentile, standard deviation, interquartile, gradient - each suited for different content types.
-
-**Why it matters**:
-- Preserves topic coherence
-- No mid-topic splits
-- Variable chunk sizes adapt to content
-
-**Trade-offs**: Expensive setup (embed every sentence), better quality.
-
-**Where to learn more**: [API Reference - Strategy 7](docs/04_api_reference.md#strategy-7-semantic-chunking)
-
-### Design Philosophy
-
-**Core principles evident in the codebase**:
-
-1. **Education First**: Code is optimized for learning, not production. Extensive inline documentation, progressive complexity, notebook-first design.
-
-2. **Composability Over Inheritance**: Uses function composition and LCEL chains rather than class hierarchies. Easier to understand and modify.
-
-3. **Empirical Comparison**: Architecture designed for side-by-side strategy comparison with controlled variables (same data, LLM, prompt).
-
-4. **Observability Built-In**: LangSmith integration from the start for tracing, cost analysis, debugging.
-
-5. **Minimal Abstraction**: Direct use of library components without custom wrappers. Lower cognitive load, clearer data flow.
-
-6. **Stateless Chains**: All RAG chains are stateless and independently invocable. Easy to test, parallelize, cache.
-
-### Evolution and Future
-
-**Potential extensions** (evident from architecture):
-
-1. **Evaluation Framework**: Placeholder exists for Ragas-based evaluation (lines 568-595 in `adv-retrieval.py`). Future work will compare strategies empirically.
-
-2. **Persistent Vector Stores**: Currently uses `:memory:` for demos. Production would use persistent Qdrant or cloud-hosted service.
-
-3. **Custom Retrievers**: Pattern established makes adding new strategies straightforward - follow same LCEL chain structure.
-
-4. **Metadata Filtering**: CSV columns preserved as metadata, enabling domain-specific retrieval.
-
-5. **A/B Testing**: Architecture supports running multiple strategies in parallel for live traffic comparison.
-
----
+- **Independent Sessions**: Each session script is self-contained, no inter-dependencies
+- **Reusable Patterns**: LCEL chains, state management, evaluation workflows are consistent
+- **Flexible Configuration**: Easy to swap models, adjust parameters, experiment with strategies
+- **Clear Separation**: Data loading, retrieval, generation, evaluation are distinct phases
 
 ## Troubleshooting
 
 ### Common Issues
 
-#### 1. Empty or Irrelevant Results
-**Symptoms**: Retriever returns no documents or clearly wrong ones
+**Rate Limiting Errors from OpenAI**:
+- Add delays: `time.sleep(2)` between calls
+- Use async with rate limiting for parallel operations
+- Monitor usage in OpenAI dashboard
 
-**Quick fixes**:
-```python
-# Verify vector store has documents
-print(f"Docs in store: {len(vectorstore.similarity_search('test', k=1))}")
+**Qdrant Collection Already Exists**:
+- Use unique collection names with UUID
+- Delete existing: `client.delete_collection("collection_name")`
+- Use different location (`:memory:` vs disk path)
 
-# Try BM25 for exact keywords
-bm25 = BM25Retriever.from_documents(documents)
-results = bm25.invoke("your query")
+**RAGAS Evaluation Timeout**:
+- Increase timeout: `RunConfig(timeout=360)` or higher
+- Reduce testset size for testing
+- Check API quotas and limits
 
-# Lower similarity threshold
-retriever = vectorstore.as_retriever(
-    search_type="similarity_score_threshold",
-    search_kwargs={"score_threshold": 0.5}
-)
-```
+**Memory Errors with Large Datasets**:
+- Process documents in batches
+- Use disk-based Qdrant instead of `:memory:`
+- Reduce chunk sizes or document count
+- Clear vector stores between runs
 
-#### 2. High Latency
-**Symptoms**: Queries take several seconds
+**LangSmith Traces Not Appearing**:
+- Ensure `LANGSMITH_TRACING="true"` is set
+- Verify `LANGSMITH_API_KEY` is correct
+- Check project name is valid
+- Allow 10-30 seconds for traces to appear
 
-**Quick fixes**:
-```python
-# Reduce k value
-retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
+**Complete Guide**: See [API Reference](docs/04_api_reference.md#troubleshooting)
 
-# Use async for parallel queries
-results = await asyncio.gather(*[chain.ainvoke({"question": q}) for q in queries])
+## Documentation Index
 
-# Profile to find bottleneck
-import time
-start = time.time()
-docs = retriever.invoke(query)
-print(f"Retrieval: {time.time() - start:.2f}s")
-```
+### Component Documentation
 
-#### 3. API Rate Limits
-**Symptoms**: `RateLimitError` or 429 errors
+- **[01_component_inventory.md](docs/01_component_inventory.md)** - Complete catalog of all modules, classes, and functions with file references and line numbers. Includes entry points, dependencies, and module classifications.
 
-**Quick fixes**:
-```python
-# Add retry logic
-from tenacity import retry, wait_exponential, stop_after_attempt
+### Architecture Documentation
 
-@retry(wait=wait_exponential(min=1, max=60), stop=stop_after_attempt(5))
-def embed_with_retry(texts):
-    return embeddings.embed_documents(texts)
+- **[02_architecture_diagrams.md](diagrams/02_architecture_diagrams.md)** - Visual diagrams showing:
+  - System layered architecture (Presentation → Application → Business Logic → Data Access → External Services)
+  - Component relationships and module interactions
+  - Retrieval strategy components and data flows
+  - Class hierarchies (State, TypedDict classes, RAGAS classes)
+  - Module dependency graph
+  - External API and service integrations
 
-# Batch with delays
-for i in range(0, len(docs), batch_size):
-    vectorstore.add_documents(docs[i:i+batch_size])
-    time.sleep(1)
-```
+### Flow Documentation
 
-#### 4. High API Costs
-**Symptoms**: Unexpected bills
+- **[03_data_flows.md](docs/03_data_flows.md)** - Detailed sequence diagrams for:
+  - Synthetic data generation (PDF → KG → test synthesis)
+  - RAG evaluation workflows (baseline and reranked)
+  - All seven retrieval strategies (Naive, BM25, Compression, Multi-Query, Parent Document, Ensemble, Semantic)
+  - LangSmith integration and tracing
+  - State management and transitions
+  - Performance considerations and optimization
 
-**Quick fixes**:
-```python
-# Cache embeddings aggressively
-from langchain.embeddings import CacheBackedEmbeddings
-cached = CacheBackedEmbeddings.from_bytes_store(embeddings, LocalFileStore("./cache"))
+### API Documentation
 
-# Limit ensemble components
-ensemble = EnsembleRetriever(
-    retrievers=[bm25, semantic],  # Just 2 instead of 5
-    weights=[0.5, 0.5]
-)
+- **[04_api_reference.md](docs/04_api_reference.md)** - Complete API reference with:
+  - Configuration options and environment variables
+  - Function signatures with parameters and examples
+  - Class definitions (State, AdjustedState, RAGAS classes)
+  - Usage patterns and LCEL chain construction
+  - Best practices for strategy selection
+  - Performance considerations and trade-offs
+  - Troubleshooting guide
 
-# Use cheaper models
-embeddings = OpenAIEmbeddings(model="text-embedding-3-small")  # Cheapest
-chat_model = ChatOpenAI(model="gpt-4.1-nano")  # Cheaper than gpt-4
-```
+## Project Context
 
-#### 5. Out of Memory Errors
-**Symptoms**: Program crashes, especially with large document sets
+### Educational Purpose
 
-**Quick fixes**:
-```python
-# Process in batches
-for i in range(0, len(documents), 100):
-    vectorstore.add_documents(documents[i:i+100])
+This project is designed for **learning advanced retrieval strategies for RAG systems**. It provides:
 
-# Use persistent storage
-client = QdrantClient(path="./qdrant_storage")
+- **Hands-on experience** with seven different retrieval approaches
+- **Comparative analysis** framework for understanding trade-offs
+- **Production-ready patterns** using LangChain Expression Language
+- **Evaluation methodologies** with RAGAS and LangSmith
+- **Best practices** for RAG system design and implementation
 
-# Enable on-disk vectors
-client.create_collection(
-    collection_name="large",
-    vectors_config=models.VectorParams(size=1536, distance=models.Distance.COSINE, on_disk=True)
-)
-```
+The tutorial structure progresses from foundational concepts (synthetic data generation) through evaluation frameworks to advanced retrieval strategies, providing a complete learning journey.
 
-**For complete troubleshooting guide, see**: [API Reference - Troubleshooting](docs/04_api_reference.md#troubleshooting)
+### Session Progression
 
----
+The three sessions build on each other:
 
-## Contributing
+1. **Session 07** establishes the foundation: How to create high-quality test data and evaluate RAG systems using LangSmith
+2. **Session 08** introduces RAGAS metrics and LangGraph workflows, comparing baseline vs. improved retrieval
+3. **Session 09** explores seven advanced strategies, demonstrating when and how to use each approach
 
-### Understanding the Codebase
+Each session can be studied independently, but together they provide comprehensive understanding of modern RAG systems.
 
-**New contributor workflow**:
+### Learning Outcomes
 
-1. **Read this README** for high-level understanding
-2. **Review [API Reference](docs/04_api_reference.md)** for each strategy's implementation
-3. **Examine [Component Inventory](docs/01_component_inventory.md)** for code organization
-4. **Study [Data Flow Analysis](docs/03_data_flows.md)** for execution patterns
-5. **Run interactive notebook**: `notebooks/session09-adv-retrieval.ipynb`
+After completing this project, developers should be able to:
 
-**Key files for contributors**:
-- `config.py` (32 lines) - Start here, very simple
-- `adv-retrieval.py` (595 lines) - Main implementation
-- `notebooks/session09-adv-retrieval.ipynb` - Interactive version
+- **Implement** seven different retrieval strategies using LangChain
+- **Evaluate** RAG systems objectively using RAGAS metrics
+- **Generate** synthetic test datasets with diverse query types
+- **Compare** retrieval approaches based on latency, cost, and quality
+- **Choose** appropriate strategies for specific use cases
+- **Build** production-ready RAG systems with proper observability
+- **Debug** RAG issues using LangSmith tracing
+- **Optimize** performance through strategy selection and configuration
 
-### Adding New Retrieval Strategies
+## Additional Resources
 
-**Pattern to follow**:
+### Related Documentation
 
-1. **Create retriever** following LangChain retriever interface
-2. **Build LCEL chain** using the standard pattern:
-   ```python
-   new_strategy_chain = (
-       {"context": itemgetter("question") | new_retriever, "question": itemgetter("question")}
-       | RunnablePassthrough.assign(context=itemgetter("context"))
-       | {"response": rag_prompt | chat_model, "context": itemgetter("context")}
-   )
-   ```
-3. **Test with sample queries** to verify retrieval quality
-4. **Add to Ensemble** (optional) to compare performance
-5. **Document in API Reference** following existing strategy format
+- [LangChain Documentation](https://python.langchain.com/) - Core framework documentation
+- [RAGAS Documentation](https://docs.ragas.io/) - RAG evaluation framework
+- [LangSmith Documentation](https://docs.smith.langchain.com/) - Observability platform
+- [OpenAI API Documentation](https://platform.openai.com/docs/) - LLM and embeddings
+- [Cohere Rerank Documentation](https://docs.cohere.com/docs/reranking) - Reranking models
+- [Qdrant Documentation](https://qdrant.tech/documentation/) - Vector database
 
-**Example - Adding a new "Hybrid BM25+Semantic" strategy**:
+### Further Reading
 
-```python
-from langchain.retrievers import EnsembleRetriever
-
-# Create hybrid retriever
-hybrid_retriever = EnsembleRetriever(
-    retrievers=[bm25_retriever, naive_retriever],
-    weights=[0.5, 0.5]
-)
-
-# Build chain (same pattern as others)
-hybrid_retrieval_chain = (
-    {"context": itemgetter("question") | hybrid_retriever, "question": itemgetter("question")}
-    | RunnablePassthrough.assign(context=itemgetter("context"))
-    | {"response": rag_prompt | chat_model, "context": itemgetter("context")}
-)
-
-# Test
-result = hybrid_retrieval_chain.invoke({"question": "Test query"})
-```
-
-**See**: [Component Inventory - Implementation Patterns](docs/01_component_inventory.md#implementation-patterns) for existing strategy implementations.
-
----
-
-## References
-
-### Internal Documentation
-
-- **[Component Inventory](docs/01_component_inventory.md)** - Complete catalog of modules, functions, dependencies
-- **[Architecture Diagrams](diagrams/02_architecture_diagrams.md)** - Visual system overview with Mermaid diagrams
-- **[Data Flow Analysis](docs/03_data_flows.md)** - 9 detailed sequence diagrams
-- **[API Reference](docs/04_api_reference.md)** - Complete API docs with examples
-
-### External Resources
-
-#### LangChain Documentation
-- [LangChain Main Docs](https://python.langchain.com/) - Official documentation
-- [Retrievers Guide](https://python.langchain.com/docs/modules/data_connection/retrievers/) - Retriever implementations
-- [LCEL Guide](https://python.langchain.com/docs/expression_language/) - Expression Language syntax
-- [Vector Stores](https://python.langchain.com/docs/modules/data_connection/vectorstores/) - Vector database integrations
-
-#### Retrieval Algorithms
-- [BM25 Algorithm](https://www.nowpublishers.com/article/Details/INR-019) - Okapi BM25 ranking function
-- [Reciprocal Rank Fusion](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf) - RRF algorithm paper
-- [Semantic Chunking](https://python.langchain.com/docs/how_to/semantic-chunker/) - LangChain implementation
-
-#### Vector Databases
-- [Qdrant Docs](https://qdrant.tech/documentation/) - Vector search engine documentation
-- [Qdrant Python Client](https://github.com/qdrant/qdrant-client) - Official Python SDK
-
-#### APIs and Models
-- [OpenAI Embeddings](https://platform.openai.com/docs/guides/embeddings) - text-embedding-3-small docs
-- [OpenAI Models](https://platform.openai.com/docs/models) - GPT-4.1-nano specifications
-- [Cohere Rerank](https://docs.cohere.com/docs/reranking) - rerank-v3.5 model guide
-
-#### Observability
-- [LangSmith](https://docs.smith.langchain.com/) - Tracing and monitoring platform
-- [LangSmith Tracing](https://docs.smith.langchain.com/tracing) - How to trace chains
-
-### Research Papers
-
-- **Dense Retrieval**: [Dense Passage Retrieval for Open-Domain QA](https://arxiv.org/abs/2004.04906) - DPR paper from Facebook AI
-- **Reranking**: [RankGPT: Reranking with LLMs](https://arxiv.org/abs/2304.09542) - LLM-based reranking
-- **Hybrid Search**: [Complementarity of Lexical and Semantic Matching](https://arxiv.org/abs/2104.08663) - Combining BM25 and embeddings
-
----
+- [BM25 Algorithm Paper](https://www.nowpublishers.com/article/Details/INR-019) - Understanding sparse retrieval
+- [Reciprocal Rank Fusion Paper](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf) - Ensemble retrieval theory
+- [LangGraph Conceptual Guide](https://langchain-ai.github.io/langgraph/) - Graph-based workflows
+- RAG Architecture Patterns - Best practices for production systems
+- Advanced Prompting Techniques - Improving RAG quality through prompts
 
 ## Appendix
 
 ### Glossary
 
-| Term | Definition |
-|------|------------|
-| **BM25** | Best Matching 25 - sparse retrieval algorithm based on TF-IDF |
-| **Dense Retrieval** | Vector-based semantic search using embeddings |
-| **Embedding** | Numerical vector representation of text (1536 dimensions for text-embedding-3-small) |
-| **Ensemble Retrieval** | Combining multiple retrievers using fusion algorithms |
-| **LCEL** | LangChain Expression Language - declarative chain composition syntax |
-| **Naive Retrieval** | Simple cosine similarity search (baseline) |
-| **RAG** | Retrieval-Augmented Generation - LLM + retrieved context |
-| **Reranking** | Two-stage retrieval: retrieve candidates, then rerank for precision |
-| **RRF** | Reciprocal Rank Fusion - algorithm for combining ranked lists |
-| **Semantic Chunking** | Splitting text at semantic boundaries rather than fixed sizes |
-| **Sparse Retrieval** | Keyword-based search using bag-of-words representations |
-| **Vector Store** | Database optimized for similarity search over embeddings (e.g., Qdrant) |
+- **RAG**: Retrieval-Augmented Generation - Technique combining retrieval with LLM generation
+- **RAGAS**: RAG Assessment - Framework for evaluating RAG systems
+- **SDG**: Synthetic Data Generation - Creating test datasets programmatically
+- **LCEL**: LangChain Expression Language - Declarative chain composition
+- **RRF**: Reciprocal Rank Fusion - Algorithm for merging ranked lists
+- **BM25**: Best Match 25 - Sparse retrieval algorithm using TF-IDF
+- **Reranking**: Two-stage retrieval that refines initial results
+- **Multi-Query**: Query expansion technique generating multiple variants
+- **Parent Document**: Small-to-big retrieval strategy
+- **Ensemble**: Combining multiple retrieval methods
+- **Semantic Chunking**: Document splitting based on semantic boundaries
+- **Vector Store**: Database for storing and searching embeddings
+- **Embedding**: Dense vector representation of text
+- **Context Window**: Text provided to LLM for generation
+- **Faithfulness**: Metric measuring grounding in retrieved context
+- **Hallucination**: LLM generating information not in context
 
-### Architecture Decision Records
+### Version Information
 
-While no formal ADRs exist, key architectural decisions evident from the codebase:
-
-#### ADR-001: Framework-Driven Implementation (No Custom Classes)
-**Context**: Educational project needs to be understandable and maintainable
-
-**Decision**: Use LangChain primitives directly without custom class abstractions
-
-**Rationale**:
-- Lower cognitive load for learners
-- Battle-tested implementations
-- Easier to upgrade dependencies
-- Standard patterns familiar to LangChain users
-
-**Consequences**:
-- Less flexibility for custom behavior
-- Tightly coupled to LangChain API changes
-- Requires understanding LangChain internals
-
-#### ADR-002: In-Memory Vector Stores for Demo
-**Context**: Project is educational, not production-focused
-
-**Decision**: Use `:memory:` location for Qdrant stores
-
-**Rationale**:
-- No setup required
-- Faster to get started
-- No cleanup needed
-- Perfect for notebooks
-
-**Consequences**:
-- Data lost on restart
-- Not suitable for large datasets
-- Production deployments need modification
-
-#### ADR-003: Consistent LCEL Chain Pattern
-**Context**: Need to compare 7 retrieval strategies fairly
-
-**Decision**: All chains use identical structure, LLM, and prompt - only retriever varies
-
-**Rationale**:
-- Isolates retrieval as the only variable
-- Scientifically valid comparisons
-- Easy to understand pattern
-- Copy-paste consistency
-
-**Consequences**:
-- Less flexibility per strategy
-- Prompt might not be optimal for all retrievers
-- Hard to customize individual chains
-
-#### ADR-004: Multiple Vector Stores for Different Chunking Strategies
-**Context**: Different retrieval strategies need different chunk types
-
-**Decision**: Use 3 separate Qdrant collections (standard, semantic, child chunks)
-
-**Rationale**:
-- Semantic chunking needs variable-size chunks
-- Parent document retrieval needs child chunks
-- One size doesn't fit all
-
-**Consequences**:
-- Higher memory usage
-- More complex setup
-- Better retrieval quality
-
-### Version History
-
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2025-10-08 | Initial architecture documentation |
-| - | - | 7 retrieval strategies implemented |
-| - | - | Complete API reference and diagrams |
-| - | - | Educational notebooks added |
+- **Analysis Date**: October 8, 2025
+- **Framework**: Architecture analysis framework (version architecture_20251008_212436)
+- **Documentation Format**: Markdown with Mermaid diagrams
+- **Project Version**: AIE8 Session 09 - Advanced Retrieval
+- **Python Version**: 3.9+
+- **LangChain Version**: >=0.3.14
+- **RAGAS Version**: 0.2.10
 
 ---
 
-**Generated**: 2025-10-08
-**Documentation Version**: 1.0
-**Project**: Advanced Retrieval with LangChain (aie8-s09-adv-retrieval)
-**Maintained By**: AIE8 Cohort
-
-**Source Files**:
-- Configuration: `/home/donbr/don-aie-cohort8/aie8-s09-adv-retrieval/config.py`
-- Main Implementation: `/home/donbr/don-aie-cohort8/aie8-s09-adv-retrieval/adv-retrieval.py`
-- Interactive Notebook: `/home/donbr/don-aie-cohort8/aie8-s09-adv-retrieval/notebooks/session09-adv-retrieval.ipynb`
-
-**Documentation Suite**:
-- This README provides high-level overview and quick start
-- [Component Inventory](docs/01_component_inventory.md) for implementation details
-- [Architecture Diagrams](diagrams/02_architecture_diagrams.md) for visual understanding
-- [Data Flow Analysis](docs/03_data_flows.md) for execution patterns
-- [API Reference](docs/04_api_reference.md) for complete API documentation
-
----
-
-**Questions or Issues?** Refer to the detailed documentation linked above, or review the troubleshooting section for common problems and solutions.
+*This documentation was automatically generated by the architecture analysis framework. For questions or updates, please refer to the individual component documentation files.*

@@ -1,621 +1,631 @@
 # Architecture Diagrams
 
-## Overview
-
-This document provides comprehensive architecture diagrams for the Advanced Retrieval project (aie8-s09-adv-retrieval). The project focuses on exploring and comparing multiple retrieval strategies for RAG (Retrieval-Augmented Generation) systems using LangChain.
-
-The main codebase consists of:
-- **config.py**: Configuration management for paths and settings
-- **adv-retrieval.py**: Core retrieval implementation (Jupyter notebook in Python format)
-- **notebooks/session09-adv-retrieval.ipynb**: Interactive notebook demonstrating retrieval strategies
-
-The project implements 7 distinct retrieval strategies with a common RAG chain pattern, enabling side-by-side comparison of retrieval performance.
-
----
-
 ## System Architecture
 
-The system follows a layered architecture pattern, organizing functionality from configuration and data loading at the base, through retrieval strategies in the middle, to RAG chains at the top.
+### Layered Architecture
 
 ```mermaid
 graph TB
-    subgraph "Configuration Layer"
-        CONFIG[config.py<br/>Project Paths & Settings]
+    subgraph "Presentation Layer"
+        NB1[Session 07: SDG & LangSmith]
+        NB2[Session 08: RAGAS Evaluations]
+        NB3[Session 09: Advanced Retrieval]
+        ASSIGN[Assignment Notebook]
     end
 
-    subgraph "Data Layer"
-        CSV[CSV Data Loader<br/>Projects_with_Domains.csv]
-        DOCS[Document Objects<br/>synthetic_usecase_data]
+    subgraph "Application Layer"
+        CONFIG[Configuration Module<br/>config.py]
+        SCRIPTS[Python Scripts<br/>session*.py]
     end
 
-    subgraph "Embedding Layer"
-        EMBED[OpenAI Embeddings<br/>text-embedding-3-small]
+    subgraph "Business Logic Layer"
+        RETR[Retrieval Strategies<br/>7 Implementations]
+        EVAL[Evaluation Logic<br/>RAGAS & LangSmith]
+        SDG[Synthetic Data Generation]
+        CHAIN[RAG Chain Construction<br/>LCEL Pattern]
     end
 
-    subgraph "Vector Store Layer"
-        VS1[Naive VectorStore<br/>Qdrant - Synthetic_Usecases]
-        VS2[Semantic VectorStore<br/>Qdrant - Semantic_Chunks]
-        VS3[Parent VectorStore<br/>Qdrant - full_documents]
-        VS4[InMemoryStore<br/>Parent Document Storage]
+    subgraph "Data Access Layer"
+        VSTORE[Vector Stores<br/>Qdrant In-Memory]
+        DSTORE[Document Stores<br/>InMemoryStore]
+        LOADER[Document Loaders<br/>CSV & PDF]
     end
 
-    subgraph "Retrieval Strategy Layer"
-        R1[Naive Retriever<br/>k=10]
-        R2[BM25 Retriever<br/>Bag-of-Words]
-        R3[Multi-Query Retriever<br/>LLM-generated queries]
-        R4[Parent Document Retriever<br/>Small-to-Big strategy]
-        R5[Compression Retriever<br/>Cohere Rerank]
-        R6[Ensemble Retriever<br/>Reciprocal Rank Fusion]
-        R7[Semantic Retriever<br/>Percentile chunking]
+    subgraph "External Services"
+        OPENAI[OpenAI API<br/>LLM & Embeddings]
+        COHERE[Cohere API<br/>Rerank Model]
+        LANGSMITH[LangSmith<br/>Tracing & Evaluation]
     end
 
-    subgraph "RAG Chain Layer"
-        CHAIN1[Naive Chain]
-        CHAIN2[BM25 Chain]
-        CHAIN3[Multi-Query Chain]
-        CHAIN4[Parent Document Chain]
-        CHAIN5[Compression Chain]
-        CHAIN6[Ensemble Chain]
-        CHAIN7[Semantic Chain]
-    end
+    NB1 --> SCRIPTS
+    NB2 --> SCRIPTS
+    NB3 --> SCRIPTS
+    ASSIGN --> SCRIPTS
 
-    subgraph "Generation Layer"
-        LLM[ChatOpenAI<br/>gpt-4.1-nano]
-        PROMPT[RAG Prompt Template]
-    end
+    SCRIPTS --> CONFIG
+    SCRIPTS --> RETR
+    SCRIPTS --> EVAL
+    SCRIPTS --> SDG
 
-    subgraph "Output Layer"
-        RESPONSE[Generated Response]
-    end
+    RETR --> CHAIN
+    EVAL --> CHAIN
+    SDG --> CHAIN
 
-    CONFIG --> CSV
-    CSV --> DOCS
-    DOCS --> EMBED
-    EMBED --> VS1
-    EMBED --> VS2
-    EMBED --> VS3
-    DOCS --> VS4
+    CHAIN --> VSTORE
+    CHAIN --> DSTORE
+    CHAIN --> LOADER
 
-    VS1 --> R1
-    DOCS --> R2
-    VS1 --> R3
-    VS3 --> R4
-    VS4 --> R4
-    VS1 --> R5
-    VS2 --> R7
-    R1 --> R6
-    R2 --> R6
-    R3 --> R6
-    R4 --> R6
-    R5 --> R6
-
-    R1 --> CHAIN1
-    R2 --> CHAIN2
-    R3 --> CHAIN3
-    R4 --> CHAIN4
-    R5 --> CHAIN5
-    R6 --> CHAIN6
-    R7 --> CHAIN7
-
-    CHAIN1 --> PROMPT
-    CHAIN2 --> PROMPT
-    CHAIN3 --> PROMPT
-    CHAIN4 --> PROMPT
-    CHAIN5 --> PROMPT
-    CHAIN6 --> PROMPT
-    CHAIN7 --> PROMPT
-
-    PROMPT --> LLM
-    LLM --> RESPONSE
+    VSTORE --> OPENAI
+    CHAIN --> OPENAI
+    CHAIN --> COHERE
+    EVAL --> LANGSMITH
 ```
 
-### Key Insights
+**Description**: This project follows a layered architecture pattern designed for educational exploration of advanced RAG retrieval strategies:
 
-1. **Layered Separation**: Clear separation between data loading, embedding, retrieval, and generation layers enables modularity and testability
-2. **Multiple Vector Stores**: The architecture uses 3 distinct Qdrant vector stores optimized for different retrieval strategies (naive, semantic, parent-document)
-3. **Shared Components**: All retrieval chains share the same LLM (gpt-4.1-nano) and prompt template, isolating the retrieval strategy as the only variable
-4. **Ensemble Pattern**: The Ensemble Retriever acts as a meta-retriever, combining outputs from 5 different retrieval strategies using Reciprocal Rank Fusion
-
----
+- **Presentation Layer**: Jupyter notebooks organized by session topic (sessions 07-09) providing interactive learning experiences
+- **Application Layer**: Python script implementations of each session's concepts plus configuration management
+- **Business Logic Layer**: Core RAG functionality including 7 retrieval strategies, evaluation frameworks (RAGAS/LangSmith), synthetic data generation, and LCEL chain patterns
+- **Data Access Layer**: Abstraction for vector stores (Qdrant), document stores, and data loaders for CSV and PDF documents
+- **External Services**: Integration with OpenAI (GPT-4.1 models, text-embedding-3-small/large), Cohere (rerank-v3.5), and LangSmith for observability
 
 ## Component Relationships
 
-This diagram shows how the core components interact and their dependencies. The relationships reveal a hub-and-spoke pattern with the document corpus at the center.
+### Module Interaction
 
 ```mermaid
 graph LR
-    subgraph External Services
-        OPENAI[OpenAI API<br/>Embeddings & LLM]
-        COHERE[Cohere API<br/>Rerank Model]
+    subgraph "Session Scripts"
+        S07[session07-sdg-ragas-langsmith.py]
+        S08[session08-ragas-rag-evals.py]
+        S09[session09-adv-retrieval.py]
+        ADV[adv-retrieval.py]
     end
 
-    subgraph Core Components
-        DATA[CSV Loader<br/>Document Source]
-        DOCS[Document Corpus<br/>synthetic_usecase_data]
-        EMB[Embedding Model<br/>text-embedding-3-small]
-        LLM[Chat Model<br/>gpt-4.1-nano]
+    subgraph "Configuration"
+        CFG[config.py<br/>Path & Settings]
     end
 
-    subgraph Retriever Components
-        NAIVE[Naive Retriever]
-        BM25[BM25 Retriever]
-        MULTI[Multi-Query Retriever]
-        PARENT[Parent Doc Retriever]
-        COMPRESS[Compression Retriever]
-        ENSEMBLE[Ensemble Retriever]
-        SEMANTIC[Semantic Retriever]
+    subgraph "Data Sources"
+        CSV[Projects_with_Domains.csv]
+        PDF[PDF Documents]
     end
 
-    subgraph Storage Components
-        QDRANT1[Qdrant VectorStore 1]
-        QDRANT2[Qdrant VectorStore 2]
-        QDRANT3[Qdrant VectorStore 3]
-        MEMSTORE[InMemoryStore]
+    subgraph "Shared Components"
+        EMB[OpenAIEmbeddings<br/>text-embedding-3-small]
+        LLM[ChatOpenAI<br/>gpt-4.1-nano/mini]
+        PROMPT[RAG_TEMPLATE<br/>Shared Prompt]
     end
 
-    subgraph Chain Components
-        CHAINS[7x RAG Chains]
-        PROMPT[Prompt Template]
-    end
+    S07 --> CFG
+    S08 --> CFG
+    S09 --> CFG
+    ADV --> CFG
 
-    OPENAI --> EMB
-    OPENAI --> LLM
-    COHERE --> COMPRESS
+    S07 --> PDF
+    S08 --> PDF
+    S09 --> CSV
+    ADV --> CSV
 
-    DATA --> DOCS
-    DOCS --> EMB
-    DOCS --> BM25
+    S07 --> EMB
+    S08 --> EMB
+    S09 --> EMB
+    ADV --> EMB
 
-    EMB --> QDRANT1
-    EMB --> QDRANT2
-    EMB --> QDRANT3
-    DOCS --> MEMSTORE
+    S07 --> LLM
+    S08 --> LLM
+    S09 --> LLM
+    ADV --> LLM
 
-    QDRANT1 --> NAIVE
-    QDRANT2 --> SEMANTIC
-    QDRANT3 --> PARENT
-    MEMSTORE --> PARENT
-    DOCS --> BM25
-    NAIVE --> MULTI
-    LLM --> MULTI
-    NAIVE --> COMPRESS
-
-    NAIVE --> ENSEMBLE
-    BM25 --> ENSEMBLE
-    MULTI --> ENSEMBLE
-    PARENT --> ENSEMBLE
-    COMPRESS --> ENSEMBLE
-
-    NAIVE --> CHAINS
-    BM25 --> CHAINS
-    MULTI --> CHAINS
-    PARENT --> CHAINS
-    COMPRESS --> CHAINS
-    ENSEMBLE --> CHAINS
-    SEMANTIC --> CHAINS
-
-    CHAINS --> PROMPT
-    PROMPT --> LLM
+    S08 --> PROMPT
+    S09 --> PROMPT
+    ADV --> PROMPT
 ```
 
-### Key Insights
+**Description**: The modules interact through shared components and dependencies:
 
-1. **External Dependencies**: The system depends on two external APIs (OpenAI for embeddings/LLM, Cohere for reranking)
-2. **Document Hub Pattern**: The document corpus serves as a central hub, feeding into multiple retrieval strategies
-3. **Retriever Composition**: Some retrievers are built on top of others (Compression uses Naive, Multi-Query uses Naive, Ensemble uses 5 retrievers)
-4. **Storage Diversity**: Different retrieval strategies require different storage mechanisms (3 vector stores + 1 in-memory store)
-5. **Chain Uniformity**: All 7 RAG chains use identical prompt templates and LLM configuration, ensuring fair comparison
+- **Session Scripts**: Each session script (07-09) is self-contained but follows common patterns
+- **Configuration Module**: Provides centralized path management and default settings (chunk sizes, collection names)
+- **Data Sources**: CSV data for project domains (sessions 09 & adv-retrieval), PDF documents for evaluation (sessions 07-08)
+- **Shared Components**: Common embedding model (text-embedding-3-small), LLM instances (gpt-4.1 variants), and standardized RAG prompt template
 
----
-
-## Class Hierarchies
-
-The project primarily leverages existing LangChain classes rather than defining custom class hierarchies. Below is the class structure showing the imported LangChain components and their relationships.
-
-```mermaid
-classDiagram
-    class BaseRetriever {
-        <<interface>>
-        +get_relevant_documents()
-    }
-
-    class VectorStoreRetriever {
-        +vectorstore
-        +search_kwargs
-    }
-
-    class BM25Retriever {
-        +from_documents()
-        +k: int
-    }
-
-    class MultiQueryRetriever {
-        +from_llm()
-        +retriever
-        +llm
-    }
-
-    class ParentDocumentRetriever {
-        +vectorstore
-        +docstore
-        +child_splitter
-        +add_documents()
-    }
-
-    class ContextualCompressionRetriever {
-        +base_compressor
-        +base_retriever
-    }
-
-    class EnsembleRetriever {
-        +retrievers: list
-        +weights: list
-    }
-
-    class BaseVectorStore {
-        <<interface>>
-        +from_documents()
-        +as_retriever()
-    }
-
-    class Qdrant {
-        +collection_name
-        +location
-        +embeddings
-    }
-
-    class QdrantVectorStore {
-        +client
-        +collection_name
-        +embedding
-    }
-
-    class InMemoryStore {
-        +mset()
-        +mget()
-    }
-
-    class OpenAIEmbeddings {
-        +model: str
-        +embed_documents()
-        +embed_query()
-    }
-
-    class ChatOpenAI {
-        +model: str
-        +invoke()
-    }
-
-    class CohereRerank {
-        +model: str
-        +compress_documents()
-    }
-
-    class SemanticChunker {
-        +embeddings
-        +breakpoint_threshold_type
-        +split_documents()
-    }
-
-    BaseRetriever <|-- VectorStoreRetriever
-    BaseRetriever <|-- BM25Retriever
-    BaseRetriever <|-- MultiQueryRetriever
-    BaseRetriever <|-- ParentDocumentRetriever
-    BaseRetriever <|-- ContextualCompressionRetriever
-    BaseRetriever <|-- EnsembleRetriever
-
-    BaseVectorStore <|-- Qdrant
-    BaseVectorStore <|-- QdrantVectorStore
-
-    VectorStoreRetriever --> Qdrant : uses
-    ParentDocumentRetriever --> QdrantVectorStore : uses
-    ParentDocumentRetriever --> InMemoryStore : uses
-    ContextualCompressionRetriever --> CohereRerank : uses
-    MultiQueryRetriever --> ChatOpenAI : uses
-    EnsembleRetriever --> BaseRetriever : aggregates
-
-    Qdrant --> OpenAIEmbeddings : requires
-    QdrantVectorStore --> OpenAIEmbeddings : requires
-    SemanticChunker --> OpenAIEmbeddings : requires
-```
-
-### Key Insights
-
-1. **No Custom Classes**: The project uses composition of existing LangChain classes rather than inheritance or custom implementations
-2. **Retriever Polymorphism**: All retrievers implement the BaseRetriever interface, enabling consistent usage across RAG chains
-3. **Strategy Pattern**: Different retriever implementations represent different retrieval strategies, following the Strategy design pattern
-4. **Dependency Injection**: Retrievers receive their dependencies (embeddings, LLMs, stores) through constructor injection
-5. **Framework-Driven**: The architecture relies heavily on LangChain's framework classes, minimizing custom code
-
----
-
-## Module Dependencies
-
-This diagram illustrates the dependency relationships between project modules and external packages.
-
-```mermaid
-graph TD
-    subgraph "Project Modules"
-        CONFIG[config.py<br/>Configuration]
-        MAIN[adv-retrieval.py<br/>Main Implementation]
-        NOTEBOOK[session09-adv-retrieval.ipynb<br/>Interactive Demo]
-    end
-
-    subgraph "LangChain Core"
-        LC_CORE[langchain_core<br/>prompts, runnables, parsers]
-    end
-
-    subgraph "LangChain Community"
-        LC_COMMUNITY[langchain_community<br/>document_loaders, retrievers, vectorstores]
-    end
-
-    subgraph "LangChain Integrations"
-        LC_OPENAI[langchain_openai<br/>ChatOpenAI, OpenAIEmbeddings]
-        LC_COHERE[langchain_cohere<br/>CohereRerank]
-        LC_QDRANT[langchain_qdrant<br/>QdrantVectorStore]
-        LC_EXPERIMENTAL[langchain_experimental<br/>SemanticChunker]
-    end
-
-    subgraph "LangChain Base"
-        LC_BASE[langchain<br/>retrievers, storage]
-    end
-
-    subgraph "Vector Database"
-        QDRANT[qdrant_client<br/>QdrantClient, models]
-    end
-
-    subgraph "External APIs"
-        OPENAI_API[OpenAI API<br/>GPT-4.1-nano, Embeddings]
-        COHERE_API[Cohere API<br/>Rerank v3.5]
-    end
-
-    subgraph "Python Standard Library"
-        STD[os, getpass, datetime,<br/>operator, uuid, pathlib]
-    end
-
-    CONFIG --> STD
-    MAIN --> STD
-    MAIN --> LC_CORE
-    MAIN --> LC_COMMUNITY
-    MAIN --> LC_OPENAI
-    MAIN --> LC_COHERE
-    MAIN --> LC_QDRANT
-    MAIN --> LC_EXPERIMENTAL
-    MAIN --> LC_BASE
-    MAIN --> QDRANT
-    NOTEBOOK --> MAIN
-
-    LC_OPENAI --> OPENAI_API
-    LC_COHERE --> COHERE_API
-    LC_QDRANT --> QDRANT
-    LC_COMMUNITY --> QDRANT
-
-    style CONFIG fill:#e1f5e1
-    style MAIN fill:#e1f5e1
-    style NOTEBOOK fill:#e1f5e1
-```
-
-### Key Insights
-
-1. **Minimal Custom Code**: Only 2 Python modules (config.py and adv-retrieval.py) with config having zero external dependencies
-2. **Heavy Framework Reliance**: The project depends on 6 different LangChain packages, showing deep integration with the framework
-3. **External API Coupling**: Direct dependencies on OpenAI and Cohere APIs through LangChain wrappers
-4. **Vector Store Coupling**: Tight coupling to Qdrant as the vector database (used through both langchain_community and langchain_qdrant)
-5. **Low Coupling in Config**: config.py only uses Python standard library (pathlib), making it highly portable
-6. **Notebook as Consumer**: The Jupyter notebook depends on the main module, suggesting proper code organization
-
----
-
-## Data Flow
-
-This diagram shows how data flows through the system from initial CSV loading through to final response generation.
-
-```mermaid
-flowchart TD
-    START([User Query]) --> QUERY{Which Chain?}
-
-    subgraph Data Preparation
-        CSV[CSV File<br/>Projects_with_Domains.csv] --> LOADER[CSVLoader]
-        LOADER --> |metadata extraction| DOCS[Document Objects<br/>page_content + metadata]
-    end
-
-    subgraph Embedding & Storage
-        DOCS --> |embed| EMB[OpenAI Embeddings<br/>text-embedding-3-small]
-        EMB --> |1536-dim vectors| VS[Vector Stores<br/>Qdrant Collections]
-    end
-
-    QUERY --> |1| NAIVE_FLOW[Naive Retrieval]
-    QUERY --> |2| BM25_FLOW[BM25 Retrieval]
-    QUERY --> |3| MULTI_FLOW[Multi-Query Retrieval]
-    QUERY --> |4| PARENT_FLOW[Parent Doc Retrieval]
-    QUERY --> |5| COMPRESS_FLOW[Compression Retrieval]
-    QUERY --> |6| ENSEMBLE_FLOW[Ensemble Retrieval]
-    QUERY --> |7| SEMANTIC_FLOW[Semantic Retrieval]
-
-    subgraph Naive Flow
-        NAIVE_FLOW --> |embed query| NV1[Query Vector]
-        NV1 --> |cosine similarity| NV2[Vector Store Search]
-        VS --> NV2
-        NV2 --> |top k=10| NV3[Retrieved Docs]
-    end
-
-    subgraph BM25 Flow
-        BM25_FLOW --> |tokenize| BM1[Query Tokens]
-        BM1 --> |bag-of-words| BM2[BM25 Scoring]
-        DOCS --> BM2
-        BM2 --> |top k| BM3[Retrieved Docs]
-    end
-
-    subgraph Multi-Query Flow
-        MULTI_FLOW --> |LLM expansion| MQ1[Generate N Queries]
-        MQ1 --> |for each query| MQ2[Retrieve Documents]
-        VS --> MQ2
-        MQ2 --> |deduplicate| MQ3[Unique Retrieved Docs]
-    end
-
-    subgraph Parent Doc Flow
-        PARENT_FLOW --> |embed query| PD1[Query Vector]
-        PD1 --> |search child chunks| PD2[Find Child Chunks]
-        VS --> PD2
-        PD2 --> |lookup parent IDs| PD3[Retrieve Parent Docs]
-        MEMSTORE[InMemoryStore] --> PD3
-    end
-
-    subgraph Compression Flow
-        COMPRESS_FLOW --> |naive retrieval| CR1[Get k=10 Docs]
-        VS --> CR1
-        CR1 --> |rerank| CR2[Cohere Rerank Model]
-        CR2 --> |top n relevant| CR3[Compressed Docs]
-    end
-
-    subgraph Ensemble Flow
-        ENSEMBLE_FLOW --> |5 retrievers| EN1[Parallel Retrieval]
-        VS --> EN1
-        DOCS --> EN1
-        EN1 --> |reciprocal rank fusion| EN2[Weighted Merge]
-        EN2 --> |fused ranking| EN3[Ensemble Docs]
-    end
-
-    subgraph Semantic Flow
-        DOCS --> |semantic chunking| SC0[Percentile Breakpoints]
-        SC0 --> |embed chunks| SC1[Semantic Chunks]
-        SEMANTIC_FLOW --> |embed query| SC2[Query Vector]
-        SC2 --> |similarity search| SC3[Retrieved Semantic Chunks]
-        SC1 --> SC3
-    end
-
-    NV3 --> MERGE[Context Aggregation]
-    BM3 --> MERGE
-    MQ3 --> MERGE
-    PD3 --> MERGE
-    CR3 --> MERGE
-    EN3 --> MERGE
-    SC3 --> MERGE
-
-    MERGE --> |format context| PROMPT[Prompt Template<br/>Question + Context]
-    PROMPT --> |generate| LLM[GPT-4.1-nano]
-    LLM --> |stream| RESPONSE([Final Response])
-
-    style START fill:#e1f5fe
-    style RESPONSE fill:#e8f5e9
-```
-
-### Key Insights
-
-1. **Parallel Strategy Pattern**: 7 independent retrieval flows process the same query in different ways
-2. **Common Entry/Exit**: All flows start with a user query and end with the same LLM/prompt, isolating retrieval as the variable
-3. **Embedding Duplication**: Naive, Multi-Query, Parent, and Semantic flows all embed the query independently (potential optimization)
-4. **Two-Stage Patterns**: Compression (retrieve then rerank) and Parent Document (search children, return parents) use two-stage processing
-5. **Data Reuse**: The same document corpus and embeddings are reused across multiple vector stores (memory-efficient)
-6. **Context Aggregation**: All retrieved documents flow into a common context aggregation point before LLM generation
-
----
-
-## Retrieval Strategy Patterns
-
-This diagram illustrates the distinct retrieval strategies implemented in the project and their architectural patterns.
+### Retrieval Strategy Components
 
 ```mermaid
 graph TB
-    subgraph Strategy Taxonomy
-        RETRIEVAL[Retrieval Strategies]
-        RETRIEVAL --> DENSE[Dense Retrieval]
-        RETRIEVAL --> SPARSE[Sparse Retrieval]
-        RETRIEVAL --> HYBRID[Hybrid Methods]
-        RETRIEVAL --> ENHANCED[Enhanced Retrieval]
+    subgraph "Input"
+        QUERY[User Query]
+        DOCS[Source Documents<br/>synthetic_usecase_data]
     end
 
-    subgraph Dense Vector-Based
-        DENSE --> S1[Naive Retriever<br/>────────────<br/>Type: Dense Vector Search<br/>Method: Cosine Similarity<br/>k: 10<br/>Store: Qdrant<br/>────────────<br/>Pros: Simple, Fast<br/>Cons: Fixed embeddings]
-
-        DENSE --> S7[Semantic Retriever<br/>────────────<br/>Type: Dense + Smart Chunking<br/>Method: Percentile Breakpoints<br/>k: 10<br/>Chunking: Semantic boundaries<br/>────────────<br/>Pros: Context-aware chunks<br/>Cons: Embedding overhead]
+    subgraph "7 Retrieval Strategies"
+        NAIVE[1. Naive Retrieval<br/>Cosine Similarity<br/>k=10]
+        BM25[2. BM25 Retriever<br/>Sparse Bag-of-Words<br/>Keyword Matching]
+        COMPRESS[3. Contextual Compression<br/>Rerank with Cohere<br/>rerank-v3.5]
+        MULTI[4. Multi-Query Retriever<br/>LLM-Generated Variants<br/>Union of Results]
+        PARENT[5. Parent Document Retriever<br/>Small-to-Big Strategy<br/>750 char chunks]
+        ENSEMBLE[6. Ensemble Retriever<br/>Reciprocal Rank Fusion<br/>Equal Weights]
+        SEMANTIC[7. Semantic Chunking<br/>Percentile Threshold<br/>Semantic Similarity]
     end
 
-    subgraph Sparse Keyword-Based
-        SPARSE --> S2[BM25 Retriever<br/>────────────<br/>Type: Sparse Retrieval<br/>Method: Bag-of-Words TF-IDF<br/>Algorithm: Best-Matching 25<br/>────────────<br/>Pros: Exact keyword match<br/>Cons: No semantic understanding]
+    subgraph "Vector Stores"
+        VS1[Qdrant: Synthetic_Usecases<br/>1536 dimensions]
+        VS2[Qdrant: full_documents<br/>Parent-Child]
+        VS3[Qdrant: Semantic_Chunks<br/>Limited to 20 docs]
     end
 
-    subgraph Query Enhancement
-        ENHANCED --> S3[Multi-Query Retriever<br/>────────────<br/>Type: Query Expansion<br/>Method: LLM-generated variants<br/>Base: Naive Retriever<br/>LLM: GPT-4.1-nano<br/>────────────<br/>Pros: Better recall<br/>Cons: Higher latency/cost]
+    subgraph "RAG Chain Pattern"
+        LCEL[LCEL Chain Structure<br/>context + question -> prompt -> LLM]
     end
 
-    subgraph Hierarchical Methods
-        ENHANCED --> S4[Parent Document Retriever<br/>────────────<br/>Type: Small-to-Big<br/>Method: Child search → Parent return<br/>Child Size: 750 chars<br/>Stores: Vector + InMemory<br/>────────────<br/>Pros: Precise + Contextual<br/>Cons: Complex setup]
-    end
+    DOCS --> NAIVE
+    DOCS --> BM25
+    DOCS --> COMPRESS
+    DOCS --> MULTI
+    DOCS --> PARENT
+    DOCS --> ENSEMBLE
+    DOCS --> SEMANTIC
 
-    subgraph Post-Processing
-        ENHANCED --> S5[Compression Retriever<br/>────────────<br/>Type: Reranking<br/>Method: Cohere Rerank v3.5<br/>Base: Naive k=10<br/>Output: Top n compressed<br/>────────────<br/>Pros: High precision<br/>Cons: API cost]
-    end
+    NAIVE --> VS1
+    COMPRESS --> VS1
+    MULTI --> VS1
+    PARENT --> VS2
+    SEMANTIC --> VS3
 
-    subgraph Meta-Retrieval
-        HYBRID --> S6[Ensemble Retriever<br/>────────────<br/>Type: Fusion<br/>Method: Reciprocal Rank Fusion<br/>Combines: 5 retrievers<br/>Weights: Equal 0.2 each<br/>────────────<br/>Pros: Robust performance<br/>Cons: Highest latency]
-    end
+    ENSEMBLE --> BM25
+    ENSEMBLE --> NAIVE
+    ENSEMBLE --> PARENT
+    ENSEMBLE --> COMPRESS
+    ENSEMBLE --> MULTI
 
-    subgraph Comparison Framework
-        S1 --> CHAIN[RAG Chain<br/>────────────<br/>Components:<br/>• Prompt Template<br/>• GPT-4.1-nano<br/>• StrOutputParser<br/>────────────<br/>Pattern: LCEL]
-        S2 --> CHAIN
-        S3 --> CHAIN
-        S4 --> CHAIN
-        S5 --> CHAIN
-        S6 --> CHAIN
-        S7 --> CHAIN
+    QUERY --> NAIVE
+    QUERY --> BM25
+    QUERY --> COMPRESS
+    QUERY --> MULTI
+    QUERY --> PARENT
+    QUERY --> ENSEMBLE
+    QUERY --> SEMANTIC
 
-        CHAIN --> EVAL[Evaluation<br/>────────────<br/>Metrics:<br/>• Cost<br/>• Latency<br/>• Performance<br/>────────────<br/>Tool: Ragas + LangSmith]
-    end
-
-    style S1 fill:#e3f2fd
-    style S2 fill:#fff3e0
-    style S3 fill:#f3e5f5
-    style S4 fill:#e8f5e9
-    style S5 fill:#fce4ec
-    style S6 fill:#e0f2f1
-    style S7 fill:#f1f8e9
-    style CHAIN fill:#ede7f6
-    style EVAL fill:#fff9c4
+    NAIVE --> LCEL
+    BM25 --> LCEL
+    COMPRESS --> LCEL
+    MULTI --> LCEL
+    PARENT --> LCEL
+    ENSEMBLE --> LCEL
+    SEMANTIC --> LCEL
 ```
 
-### Key Insights
+**Description**: The project implements 7 distinct retrieval strategies, each optimized for different scenarios:
 
-1. **Strategy Diversity**: The project implements 7 distinct retrieval patterns covering dense, sparse, hybrid, and enhanced methods
-2. **Comparative Design**: All strategies feed into identical RAG chains, enabling fair performance comparison
-3. **Trade-off Spectrum**:
-   - **Speed**: BM25 (fastest) → Naive → Ensemble (slowest)
-   - **Cost**: Naive (cheapest) → Compression/Multi-Query (most expensive)
-   - **Precision**: Compression (highest) → Ensemble → Naive (variable)
-4. **Composability**: Ensemble combines 5 strategies, showing meta-retrieval capabilities
-5. **Evaluation-Driven**: The architecture is designed for empirical comparison using Ragas metrics and LangSmith observability
-6. **Small-to-Big Pattern**: Parent Document Retriever implements a hierarchical retrieval strategy (search granular, return contextual)
-7. **Query Expansion**: Multi-Query uses LLM to generate query variants, improving recall through diversity
+1. **Naive Retrieval**: Baseline cosine similarity search returning top-10 documents
+2. **BM25**: Classic sparse retrieval using bag-of-words for keyword-based matching
+3. **Contextual Compression**: Retrieves 10 docs then reranks using Cohere's rerank-v3.5 model
+4. **Multi-Query**: Generates multiple query variations via LLM, retrieves for each, returns union
+5. **Parent Document Retriever**: Searches small chunks (750 chars) but returns full parent documents
+6. **Ensemble Retriever**: Combines all 5 other retrievers using Reciprocal Rank Fusion with equal weights
+7. **Semantic Chunking**: Pre-processing strategy that chunks by semantic similarity (percentile threshold)
 
----
+All strategies feed into the same LCEL chain pattern for consistent evaluation.
 
-## Implementation Insights
+## Class Hierarchies
 
-### Retrieval Strategy Characteristics
+### State Management Classes
 
-| Strategy | Type | Latency | Cost | Best Use Case |
-|----------|------|---------|------|---------------|
-| **Naive** | Dense Vector | Low | Low | Baseline semantic search |
-| **BM25** | Sparse Keyword | Lowest | Lowest | Exact keyword matching |
-| **Multi-Query** | Query Enhancement | High | High | Improving recall via query expansion |
-| **Parent Document** | Hierarchical | Medium | Medium | Precise search with full context |
-| **Compression** | Reranking | High | High | Maximizing precision |
-| **Ensemble** | Meta-Retrieval | Highest | Highest | Robust performance across query types |
-| **Semantic** | Smart Chunking | Medium | Medium | Documents with clear semantic boundaries |
+```mermaid
+classDiagram
+    class State {
+        <<TypedDict>>
+        +str question
+        +List~Document~ context
+        +str response
+    }
 
-### Architecture Principles
+    class AdjustedState {
+        <<TypedDict>>
+        +str question
+        +List~Document~ context
+        +str response
+    }
 
-1. **Modularity**: Each retrieval strategy is independently implemented and testable
-2. **Composability**: Strategies can be combined (as shown in Ensemble)
-3. **Consistency**: Shared LLM, prompt, and evaluation framework across all strategies
-4. **Observability**: LangSmith integration for tracing and cost analysis
-5. **Extensibility**: New retrieval strategies can be added following the same pattern
+    class Document {
+        <<LangChain Core>>
+        +str page_content
+        +dict metadata
+    }
 
-### Key Files Reference
+    class EvaluationDataset {
+        <<RAGAS>>
+        +to_pandas() DataFrame
+        +to_csv(path) void
+        +from_pandas(df) EvaluationDataset
+    }
 
-- **Configuration**: `/home/donbr/don-aie-cohort8/aie8-s09-adv-retrieval/config.py` (lines 8-24)
-- **Data Loading**: `adv-retrieval.py` (lines 59-80) / `session09-adv-retrieval.ipynb` (cell 5)
-- **Vector Stores**: `session09-adv-retrieval.ipynb` (cells 9, 14, 18)
-- **Retrievers**: `session09-adv-retrieval.ipynb` (cells 10, 22-25)
-- **RAG Chains**: `session09-adv-retrieval.ipynb` (cells 28-40)
-- **Evaluation**: `session09-adv-retrieval.ipynb` (cells 41-62)
+    class TestsetGenerator {
+        <<RAGAS>>
+        +LangchainLLMWrapper llm
+        +LangchainEmbeddingsWrapper embedding_model
+        +KnowledgeGraph knowledge_graph
+        +generate(size, distribution) Testset
+        +generate_with_langchain_docs(docs, size) Testset
+    }
+
+    class KnowledgeGraph {
+        <<RAGAS>>
+        +List~Node~ nodes
+        +save(path) void
+        +load(path) KnowledgeGraph
+    }
+
+    class Node {
+        <<RAGAS>>
+        +NodeType type
+        +dict properties
+    }
+
+    State --> Document : contains
+    AdjustedState --> Document : contains
+    TestsetGenerator --> KnowledgeGraph : uses
+    KnowledgeGraph --> Node : contains
+```
+
+**Description**: The project uses TypedDict classes for state management in LangGraph implementations:
+
+- **State/AdjustedState**: TypedDict classes defining the state schema for RAG graphs (question, context documents, response)
+- **Document**: LangChain core document class containing page_content and metadata
+- **RAGAS Classes**: Evaluation framework classes for synthetic data generation (TestsetGenerator), knowledge graph construction (KnowledgeGraph, Node), and evaluation datasets (EvaluationDataset)
+
+The state classes follow LangGraph patterns while RAGAS classes support the evaluation pipeline.
+
+## Module Dependencies
+
+### Import Graph
+
+```mermaid
+graph TB
+    subgraph "Session 09: Advanced Retrieval"
+        S09[session09-adv-retrieval.py]
+    end
+
+    subgraph "Session 08: RAGAS Evals"
+        S08[session08-ragas-rag-evals.py]
+    end
+
+    subgraph "Session 07: SDG & LangSmith"
+        S07[session07-sdg-ragas-langsmith.py]
+    end
+
+    subgraph "Main Implementation"
+        ADV[adv-retrieval.py]
+    end
+
+    subgraph "Configuration"
+        CFG[config.py]
+    end
+
+    subgraph "LangChain Core"
+        LC_CORE[langchain_core<br/>prompts, runnables,<br/>output_parsers]
+        LC_RETR[langchain.retrievers<br/>Ensemble, Parent,<br/>Multi-Query, Compression]
+        LC_SPLIT[langchain_text_splitters<br/>Recursive, Semantic]
+    end
+
+    subgraph "LangChain Community"
+        LC_COMM[langchain_community<br/>BM25Retriever,<br/>CSVLoader, PDFLoader,<br/>Qdrant VectorStore]
+    end
+
+    subgraph "LangChain Integrations"
+        LC_OAI[langchain_openai<br/>ChatOpenAI,<br/>OpenAIEmbeddings]
+        LC_COH[langchain_cohere<br/>CohereRerank]
+        LC_QDRANT[langchain_qdrant<br/>QdrantVectorStore]
+    end
+
+    subgraph "LangGraph"
+        LG[langgraph.graph<br/>StateGraph, START]
+    end
+
+    subgraph "RAGAS"
+        RAGAS[ragas<br/>evaluate, metrics,<br/>TestsetGenerator,<br/>KnowledgeGraph]
+    end
+
+    subgraph "LangSmith"
+        LS[langsmith<br/>Client, evaluate,<br/>LangChainStringEvaluator]
+    end
+
+    subgraph "Qdrant Client"
+        QC[qdrant_client<br/>QdrantClient, models]
+    end
+
+    S09 --> LC_CORE
+    S09 --> LC_RETR
+    S09 --> LC_SPLIT
+    S09 --> LC_COMM
+    S09 --> LC_OAI
+    S09 --> LC_COH
+    S09 --> QC
+
+    S08 --> LC_CORE
+    S08 --> LC_RETR
+    S08 --> LC_COMM
+    S08 --> LC_OAI
+    S08 --> LC_COH
+    S08 --> LC_QDRANT
+    S08 --> LG
+    S08 --> RAGAS
+    S08 --> QC
+
+    S07 --> LC_CORE
+    S07 --> LC_COMM
+    S07 --> LC_OAI
+    S07 --> RAGAS
+    S07 --> LS
+
+    ADV --> LC_CORE
+    ADV --> LC_RETR
+    ADV --> LC_SPLIT
+    ADV --> LC_COMM
+    ADV --> LC_OAI
+    ADV --> LC_COH
+    ADV --> QC
+
+    S07 -.-> CFG
+    S08 -.-> CFG
+    S09 -.-> CFG
+    ADV -.-> CFG
+```
+
+**Description**: The dependency graph shows clear separation of concerns:
+
+- **Config Module**: Provides path configuration but has minimal dependencies (only pathlib)
+- **Session 07**: Focuses on synthetic data generation (RAGAS) and evaluation (LangSmith)
+- **Session 08**: Adds LangGraph for RAG pipeline orchestration and comprehensive RAGAS metrics
+- **Session 09**: Concentrates on retrieval strategies with extensive LangChain retrievers
+- **Main Script (adv-retrieval.py)**: Comprehensive implementation of all retrieval strategies
+- **External Dependencies**: OpenAI (LLM & embeddings), Cohere (reranking), Qdrant (vector storage), RAGAS (evaluation), LangSmith (observability)
+
+## Data Flow
+
+### Retrieval Pipeline
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Chain as RAG Chain (LCEL)
+    participant Retriever
+    participant VectorStore as Qdrant VectorStore
+    participant Embeddings as OpenAI Embeddings
+    participant Reranker as Cohere Rerank
+    participant LLM as ChatOpenAI
+
+    User->>Chain: invoke({"question": "query"})
+
+    Note over Chain: Extract question via itemgetter
+
+    Chain->>Retriever: invoke("query")
+
+    alt Naive/BM25/Semantic/Multi-Query
+        Retriever->>Embeddings: embed_query("query")
+        Embeddings-->>Retriever: query_vector
+        Retriever->>VectorStore: similarity_search(vector, k=10)
+        VectorStore-->>Retriever: 10 documents
+    else Parent Document
+        Retriever->>Embeddings: embed_query("query")
+        Embeddings-->>Retriever: query_vector
+        Retriever->>VectorStore: search child chunks
+        VectorStore-->>Retriever: child chunks
+        Retriever->>Retriever: fetch parent documents
+        Retriever-->>Retriever: parent documents
+    else Contextual Compression
+        Retriever->>VectorStore: similarity_search(k=10)
+        VectorStore-->>Retriever: 10 documents
+        Retriever->>Reranker: rerank(query, docs)
+        Reranker-->>Retriever: top-N reranked docs
+    else Ensemble
+        Retriever->>Retriever: parallel retrieve from all
+        Retriever->>Retriever: reciprocal rank fusion
+    end
+
+    Retriever-->>Chain: retrieved_contexts
+
+    Note over Chain: Format prompt with<br/>question + context
+
+    Chain->>LLM: invoke(formatted_prompt)
+    LLM-->>Chain: response
+
+    Chain-->>User: {"response": str, "context": List[Document]}
+```
+
+**Description**: The retrieval pipeline follows a consistent LCEL pattern across all strategies:
+
+1. **Query Input**: User provides question as dict input
+2. **Question Extraction**: LCEL chain extracts question via itemgetter
+3. **Retrieval**: Strategy-specific retrieval logic executes:
+   - **Vector-based**: Embed query, search vector store, return top-k
+   - **Parent Document**: Search child chunks, return parent documents
+   - **Compression**: Retrieve candidates, then rerank with Cohere
+   - **Ensemble**: Parallel retrieval from multiple strategies, fuse with RRF
+4. **Context Assembly**: Retrieved documents assigned to context key
+5. **Prompt Formatting**: RAG template populated with question + context
+6. **Generation**: LLM generates response based on formatted prompt
+7. **Output**: Return both response and context for evaluation
+
+### RAG Evaluation Flow
+
+```mermaid
+flowchart TD
+    START([Start Evaluation]) --> LOAD_DATA[Load Source Documents<br/>CSV or PDF]
+
+    LOAD_DATA --> SDG_CHOICE{Evaluation<br/>Approach?}
+
+    SDG_CHOICE -->|Session 07/08| SDG[Synthetic Data Generation<br/>via RAGAS]
+    SDG_CHOICE -->|Session 09| MANUAL[Manual Test Questions]
+
+    SDG --> BUILD_KG[Build Knowledge Graph<br/>with default_transforms]
+    BUILD_KG --> GENERATE[Generate Test Set<br/>Query Distribution:<br/>SingleHop: 50%<br/>MultiHopAbstract: 25%<br/>MultiHopSpecific: 25%]
+
+    GENERATE --> GOLDEN[Golden Test Set<br/>user_input, reference,<br/>reference_contexts]
+
+    MANUAL --> GOLDEN
+
+    GOLDEN --> BUILD_CHAIN[Build RAG Chain<br/>Choose Strategy]
+
+    BUILD_CHAIN --> VECTORIZE[Create Vector Store<br/>Split & Embed Documents]
+
+    VECTORIZE --> SETUP_RETR[Configure Retriever<br/>Strategy-Specific Parameters]
+
+    SETUP_RETR --> LCEL["Construct LCEL Chain<br/>retriever | prompt | LLM"]
+
+    LCEL --> INFERENCE[Run Inference Loop<br/>For each test question]
+
+    INFERENCE --> COLLECT[Collect Results<br/>response + retrieved_contexts]
+
+    COLLECT --> EVAL_CHOICE{Evaluation<br/>Platform?}
+
+    EVAL_CHOICE -->|RAGAS| RAGAS_EVAL[RAGAS Evaluation<br/>Metrics:<br/>- LLMContextRecall<br/>- Faithfulness<br/>- FactualCorrectness<br/>- ResponseRelevancy<br/>- ContextEntityRecall<br/>- NoiseSensitivity]
+
+    EVAL_CHOICE -->|LangSmith| LS_EVAL[LangSmith Evaluation<br/>Evaluators:<br/>- QA Evaluator<br/>- Labeled Helpfulness<br/>- Custom Criteria]
+
+    RAGAS_EVAL --> RESULTS[Evaluation Results<br/>Metrics Scores]
+    LS_EVAL --> RESULTS
+
+    RESULTS --> COMPARE[Compare Strategies<br/>Cost, Latency, Performance]
+
+    COMPARE --> END([End Evaluation])
+
+    style START fill:#90EE90
+    style END fill:#FFB6C1
+    style GOLDEN fill:#FFD700
+    style RESULTS fill:#87CEEB
+```
+
+**Description**: The RAG evaluation workflow supports comprehensive testing and comparison:
+
+1. **Data Loading**: Load source documents (CSV for session 09, PDF for sessions 07-08)
+
+2. **Test Set Generation**:
+   - **RAGAS Approach (Sessions 07-08)**: Build knowledge graph, apply transforms, generate synthetic test set with query distribution
+   - **Manual Approach (Session 09)**: Use predefined questions for strategy comparison
+
+3. **Golden Test Set**: Contains user_input (question), reference (expected answer), and reference_contexts (ground truth)
+
+4. **RAG Chain Construction**:
+   - Select retrieval strategy (1 of 7)
+   - Split and embed documents
+   - Configure strategy-specific parameters
+   - Build LCEL chain pattern
+
+5. **Inference**: Run each test question through the chain, collect response and retrieved contexts
+
+6. **Evaluation Platform Selection**:
+   - **RAGAS**: Comprehensive metrics including context recall, faithfulness, factual correctness, response relevancy, entity recall, and noise sensitivity
+   - **LangSmith**: Custom evaluators for QA accuracy, helpfulness, and domain-specific criteria
+
+7. **Results Analysis**: Compare strategies across cost (API calls), latency (execution time), and performance (metric scores)
+
+## External Dependencies
+
+### API and Service Integration
+
+```mermaid
+graph TB
+    subgraph "Project Code"
+        SCRIPTS[Python Scripts<br/>session*.py]
+        NOTEBOOKS[Jupyter Notebooks<br/>*.ipynb]
+    end
+
+    subgraph "OpenAI Services"
+        GPT4_NANO[GPT-4.1-nano<br/>Fast Generation<br/>Used in: RAG chains]
+        GPT4_MINI[GPT-4.1-mini<br/>Balanced Performance<br/>Used in: Evaluation]
+        GPT4[GPT-4.1<br/>High Quality<br/>Used in: SDG, Evaluation]
+        EMB_SMALL[text-embedding-3-small<br/>1536 dimensions<br/>Used in: Vector stores]
+        EMB_LARGE[text-embedding-3-large<br/>Used in: Session 07]
+    end
+
+    subgraph "Cohere Services"
+        RERANK[rerank-v3.5<br/>Contextual Compression<br/>Reranking Model]
+    end
+
+    subgraph "LangSmith Services"
+        LS_TRACE[Tracing & Logging<br/>LANGCHAIN_TRACING_V2]
+        LS_EVAL[Evaluation Platform<br/>Dataset Management<br/>Custom Evaluators]
+        LS_PROJ[Project Organization<br/>Session-based Projects]
+    end
+
+    subgraph "Qdrant"
+        QDRANT_MEM[In-Memory Vector Store<br/>Collections:<br/>- Synthetic_Usecases<br/>- full_documents<br/>- Semantic_Chunks<br/>- Use Case RAG]
+    end
+
+    subgraph "RAGAS Framework"
+        RAGAS_SDG[Synthetic Data Generation<br/>TestsetGenerator]
+        RAGAS_METRICS[Evaluation Metrics<br/>6 Core Metrics]
+        RAGAS_KG[Knowledge Graph<br/>Transform Pipeline]
+    end
+
+    subgraph "Data Sources"
+        CSV_DATA[Projects_with_Domains.csv<br/>Project metadata & descriptions]
+        PDF_DATA[PDF Documents<br/>Use case documentation]
+    end
+
+    SCRIPTS --> GPT4_NANO
+    SCRIPTS --> GPT4_MINI
+    SCRIPTS --> GPT4
+    SCRIPTS --> EMB_SMALL
+    NOTEBOOKS --> EMB_LARGE
+
+    SCRIPTS --> RERANK
+
+    SCRIPTS --> LS_TRACE
+    SCRIPTS --> LS_EVAL
+    SCRIPTS --> LS_PROJ
+
+    SCRIPTS --> QDRANT_MEM
+
+    SCRIPTS --> RAGAS_SDG
+    SCRIPTS --> RAGAS_METRICS
+    SCRIPTS --> RAGAS_KG
+
+    SCRIPTS --> CSV_DATA
+    SCRIPTS --> PDF_DATA
+
+    style GPT4_NANO fill:#74AA9C
+    style EMB_SMALL fill:#74AA9C
+    style RERANK fill:#D4A5A5
+    style LS_TRACE fill:#9B9ECE
+    style QDRANT_MEM fill:#FFD93D
+    style RAGAS_SDG fill:#95E1D3
+    style CSV_DATA fill:#F8B400
+```
+
+**Description**: The project integrates with multiple external services and frameworks:
+
+### OpenAI API Integration
+- **GPT-4.1-nano**: Lightweight model for RAG response generation in all retrieval chains
+- **GPT-4.1-mini**: Mid-tier model for RAGAS evaluations and balanced tasks
+- **GPT-4.1**: Premium model for synthetic data generation and high-quality evaluation
+- **text-embedding-3-small**: Primary embedding model (1536-dim) for all vector stores
+- **text-embedding-3-large**: Alternative embedding model used in session 07
+
+### Cohere API Integration
+- **rerank-v3.5**: State-of-the-art reranking model for contextual compression retrieval strategy
+- Compresses initial retrieval results to top-N most relevant documents
+
+### LangSmith Integration
+- **Tracing**: Automatic logging of all LangChain executions via LANGCHAIN_TRACING_V2
+- **Evaluation Platform**: Dataset creation, management, and custom evaluators
+- **Project Organization**: Session-based project naming with UUID for isolation
+
+### Qdrant Vector Database
+- **In-Memory Collections**: Four distinct collections for different strategies
+  - `Synthetic_Usecases`: Main collection for naive/BM25/compression/multi-query
+  - `full_documents`: Parent-child structure for parent document retrieval
+  - `Semantic_Chunks`: Semantically chunked documents
+  - `Use Case RAG`: Collection for session 07-08 evaluations
+
+### RAGAS Framework
+- **Synthetic Data Generation**: TestsetGenerator with knowledge graph construction
+- **Evaluation Metrics**: 6 core metrics (context recall, faithfulness, factual correctness, response relevancy, entity recall, noise sensitivity)
+- **Knowledge Graph**: Document transformation and relationship extraction
+
+### Data Sources
+- **CSV Data**: Projects_with_Domains.csv containing project metadata, domains, descriptions, and judge scores
+- **PDF Documents**: Use case documentation for evaluation workflows
+
+All external integrations require API keys configured via environment variables (OPENAI_API_KEY, COHERE_API_KEY, LANGCHAIN_API_KEY).
