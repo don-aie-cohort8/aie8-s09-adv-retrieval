@@ -14,7 +14,15 @@
 
 ## Learning Journey: Sessions 07-09
 
-This repository documents a **three-session progression** building toward advanced RAG evaluation:
+This repository documents a **three-session progression** building toward advanced RAG evaluation.
+
+A few lessons learned along the way:
+- the architecture and functionality of the RAGAS Dataset Generation has changed a great deal between versions 0.2.x and 0.3.x
+  - RAGAS is moving away from using Langchain provided wrappers for LLM and Embedding models
+  - a few regressions were introduced with the non-KG approach to golden dataset generation
+    - start your RAGAS 0.3.x migration journey with single hop data generation, before layering on the complexity of multi hop.
+- our lovely `data/Projects_with_Domains.csv` data has some interesting issues, particularly with the Description column
+  - this is a Garbage In / Garbage out scenario...
 
 ### Session 07: Synthetic Data Generation ([session07-sdg-ragas-langsmith.py](session07-sdg-ragas-langsmith.py))
 
