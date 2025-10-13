@@ -79,11 +79,6 @@ graph LR
         S07[session07-sdg-ragas-langsmith.py]
         S08[session08-ragas-rag-evals.py]
         S09[session09-adv-retrieval.py]
-        ADV[adv-retrieval.py]
-    end
-
-    subgraph "Configuration"
-        CFG[config.py<br/>Path & Settings]
     end
 
     subgraph "Data Sources"
@@ -97,29 +92,20 @@ graph LR
         PROMPT[RAG_TEMPLATE<br/>Shared Prompt]
     end
 
-    S07 --> CFG
-    S08 --> CFG
-    S09 --> CFG
-    ADV --> CFG
-
     S07 --> PDF
     S08 --> PDF
     S09 --> CSV
-    ADV --> CSV
 
     S07 --> EMB
     S08 --> EMB
     S09 --> EMB
-    ADV --> EMB
 
     S07 --> LLM
     S08 --> LLM
     S09 --> LLM
-    ADV --> LLM
 
     S08 --> PROMPT
     S09 --> PROMPT
-    ADV --> PROMPT
 ```
 
 **Description**: The modules interact through shared components and dependencies:
@@ -132,6 +118,9 @@ graph LR
 ### Retrieval Strategy Components
 
 ```mermaid
+---
+id: 1f9e88d6-1033-4670-8093-c0693894a768
+---
 graph TB
     subgraph "Input"
         QUERY[User Query]
@@ -139,13 +128,13 @@ graph TB
     end
 
     subgraph "7 Retrieval Strategies"
-        NAIVE[1. Naive Retrieval<br/>Cosine Similarity<br/>k=10]
-        BM25[2. BM25 Retriever<br/>Sparse Bag-of-Words<br/>Keyword Matching]
-        COMPRESS[3. Contextual Compression<br/>Rerank with Cohere<br/>rerank-v3.5]
-        MULTI[4. Multi-Query Retriever<br/>LLM-Generated Variants<br/>Union of Results]
-        PARENT[5. Parent Document Retriever<br/>Small-to-Big Strategy<br/>750 char chunks]
-        ENSEMBLE[6. Ensemble Retriever<br/>Reciprocal Rank Fusion<br/>Equal Weights]
-        SEMANTIC[7. Semantic Chunking<br/>Percentile Threshold<br/>Semantic Similarity]
+        NAIVE["Naive Retrieval<br/>Cosine Similarity<br/>k=10"]
+        BM25["BM25 Retriever<br/>Sparse Bag-of-Words<br/>Keyword Matching"]
+        COMPRESS["Contextual Compression<br/>Rerank with Cohere<br/>rerank-v3.5"]
+        MULTI["Multi-Query Retriever<br/>LLM-Generated Variants<br/>Union of Results"]
+        PARENT["Parent Document Retriever<br/>Small-to-Big Strategy<br/>750 char chunks"]
+        ENSEMBLE["Ensemble Retriever<br/>Reciprocal Rank Fusion<br/>Equal Weights"]
+        SEMANTIC["Semantic Chunking<br/>Percentile Threshold<br/>Semantic Similarity"]
     end
 
     subgraph "Vector Stores"
@@ -281,6 +270,9 @@ The state classes follow LangGraph patterns while RAGAS classes support the eval
 ### Import Graph
 
 ```mermaid
+---
+id: ca1e1523-9ce8-4c6e-b079-835bfc2cf908
+---
 graph TB
     subgraph "Session 09: Advanced Retrieval"
         S09[session09-adv-retrieval.py]
@@ -292,14 +284,6 @@ graph TB
 
     subgraph "Session 07: SDG & LangSmith"
         S07[session07-sdg-ragas-langsmith.py]
-    end
-
-    subgraph "Main Implementation"
-        ADV[adv-retrieval.py]
-    end
-
-    subgraph "Configuration"
-        CFG[config.py]
     end
 
     subgraph "LangChain Core"
@@ -322,7 +306,7 @@ graph TB
         LG[langgraph.graph<br/>StateGraph, START]
     end
 
-    subgraph "RAGAS"
+    subgraph "RAGAS_SG"["RAGAS"]
         RAGAS[ragas<br/>evaluate, metrics,<br/>TestsetGenerator,<br/>KnowledgeGraph]
     end
 
@@ -357,19 +341,6 @@ graph TB
     S07 --> LC_OAI
     S07 --> RAGAS
     S07 --> LS
-
-    ADV --> LC_CORE
-    ADV --> LC_RETR
-    ADV --> LC_SPLIT
-    ADV --> LC_COMM
-    ADV --> LC_OAI
-    ADV --> LC_COH
-    ADV --> QC
-
-    S07 -.-> CFG
-    S08 -.-> CFG
-    S09 -.-> CFG
-    ADV -.-> CFG
 ```
 
 **Description**: The dependency graph shows clear separation of concerns:
@@ -378,7 +349,6 @@ graph TB
 - **Session 07**: Focuses on synthetic data generation (RAGAS) and evaluation (LangSmith)
 - **Session 08**: Adds LangGraph for RAG pipeline orchestration and comprehensive RAGAS metrics
 - **Session 09**: Concentrates on retrieval strategies with extensive LangChain retrievers
-- **Main Script (adv-retrieval.py)**: Comprehensive implementation of all retrieval strategies
 - **External Dependencies**: OpenAI (LLM & embeddings), Cohere (reranking), Qdrant (vector storage), RAGAS (evaluation), LangSmith (observability)
 
 ## Data Flow
