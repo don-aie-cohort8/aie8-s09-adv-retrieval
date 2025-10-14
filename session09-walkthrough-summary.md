@@ -8,6 +8,8 @@
 - Notebooks
   - [RAGAS version and generation issues](https://github.com/don-aie-cohort8/aie8-s09-adv-retrieval/blob/main/notebooks/session09-adv-retrieval-ragas.ipynb)
   - [Refactoring the langchain and retrievers](https://github.com/don-aie-cohort8/aie8-s09-adv-retrieval/blob/main/notebooks/session09-adv-retrieval.ipynb)
+- Documents
+  - [Updated README.md summarizing Sessions 7 - 9](https://github.com/don-aie-cohort8/aie8-s09-adv-retrieval/tree/main)
 
 ---
 
