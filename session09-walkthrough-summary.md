@@ -3,6 +3,12 @@
 **Date:** 2025-10-13    **Presenter:** Don B
 **Repo:** [`aie8-s09-adv-retrieval`](https://github.com/don-aie-cohort8/aie8-s09-adv-retrieval)
 
+**Key Artifacts:**
+
+- Notebooks
+  - [RAGAS version and generation issues](https://github.com/don-aie-cohort8/aie8-s09-adv-retrieval/blob/main/notebooks/session09-adv-retrieval-ragas.ipynb)
+  - [Refactoring the langchain and retrievers](https://github.com/don-aie-cohort8/aie8-s09-adv-retrieval/blob/main/notebooks/session09-adv-retrieval.ipynb)
+
 ---
 
 ## 🧠 Overview
