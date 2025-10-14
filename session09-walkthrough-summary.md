@@ -9,7 +9,7 @@
   - [RAGAS version and generation issues](https://github.com/don-aie-cohort8/aie8-s09-adv-retrieval/blob/main/notebooks/session09-adv-retrieval-ragas.ipynb)
   - [Refactoring the langchain and retrievers](https://github.com/don-aie-cohort8/aie8-s09-adv-retrieval/blob/main/notebooks/session09-adv-retrieval.ipynb)
 - Documents
-  - [Updated README.md summarizing Sessions 7 - 9](https://github.com/don-aie-cohort8/aie8-s09-adv-retrieval/tree/main)
+  - [README.md - updated to summarize Sessions 7 - 9](https://github.com/don-aie-cohort8/aie8-s09-adv-retrieval/tree/main)
 
 ---
 
@@ -93,3 +93,10 @@ Focus areas included dataset reliability, retriever design, version migration (0
 4. Use personas to simulate authentic user queries.
 5. Expose retrievers via MCP / FastAPI for LLM integration.
 6. Track runs and validate via LangSmith & Hugging Face datasets.
+
+---
+
+## 🔹 Reference Datasets in Hugging Face
+
+* RAGAS Golden Testset (Personas): [https://huggingface.co/datasets/dwb2023/ragas-golden-testset-personas](https://huggingface.co/datasets/dwb2023/ragas-golden-testset-personas)
+* LangChain Docs from RAGAS Notebook: [https://huggingface.co/datasets/dwb2023/ragas-usecase-raw-data](https://huggingface.co/datasets/dwb2023/ragas-usecase-raw-data)
