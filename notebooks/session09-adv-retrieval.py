@@ -390,3 +390,108 @@ semantic_retrieval_chain.invoke(
 semantic_retrieval_chain.invoke(
     {"question": "What did judges have to say about the fintech projects?"}
 )["response"].content
+
+# %% [markdown]
+# ### some grouping for requests
+
+# %%
+# --- 1) Chain registry (use your existing chain objects) ---
+CHAINS = {
+    "naive": naive_retrieval_chain,
+    "bm25": bm25_retrieval_chain,
+    "compression": contextual_compression_retrieval_chain,
+    "multi_query": multi_query_retrieval_chain,
+    "parent_doc": parent_document_retrieval_chain,
+    "ensemble": ensemble_retrieval_chain,
+    "semantic": semantic_retrieval_chain,
+}
+
+
+# --- 2) Minimal helpers to normalize outputs ---
+def _to_text(resp_dict):
+    """Your chains return {'response': <AIMessage|str>, 'context': [...] }."""
+    r = resp_dict.get("response")
+    if hasattr(r, "content"):  # AIMessage
+        return r.content
+    return str(r) if r is not None else ""
+
+
+def _to_context(resp_dict):
+    return resp_dict.get("context", [])
+
+
+# --- 3) Run a single question across selected chains ---
+def run_all(question: str, chains=CHAINS):
+    results = {}
+    for name, ch in chains.items():
+        out = ch.invoke({"question": question})
+        results[name] = {
+            "answer": _to_text(out),
+            "contexts": _to_context(out),
+        }
+    return results
+
+
+# --- 4) Convenience: quick pretty print for ad-hoc inspection ---
+def print_quick(results, max_len=200):
+    for name, rec in results.items():
+        ans = rec["answer"].strip().replace("\n", " ")
+        print(f"[{name}] {ans[:max_len]}{'…' if len(ans) > max_len else ''}")
+
+
+# %%
+# single question across all chains
+res = run_all("What is the most common project domain?")
+print_quick(res)
+
+
+# %%
+def run_batch(questions, chains=CHAINS):
+    """
+    Returns: dict[chain_name] -> list of {question, answer, contexts}
+    """
+    payloads = [{"question": q} for q in questions]
+    all_results = {}
+    for name, ch in chains.items():
+        outs = ch.batch(payloads)
+        all_results[name] = [
+            {
+                "question": q["question"],
+                "answer": _to_text(o),
+                "contexts": _to_context(o),
+            }
+            for q, o in zip(payloads, outs)
+        ]
+    return all_results
+
+
+def print_results(all_results, max_answer=150, max_context=100, max_ctxs=2):
+    """
+    Nicely print abridged chain results for inspection.
+    """
+    for name, records in all_results.items():
+        print(f"\n=== {name.upper()} ===")
+        for rec in records:
+            print(f"Q: {rec['question']}")
+            ans = rec["answer"].strip().replace("\n", " ")
+            print(f"A: {ans[:max_answer]}{'…' if len(ans) > max_answer else ''}")
+            ctxs = rec["contexts"][:max_ctxs]
+            for i, c in enumerate(ctxs, 1):
+                snippet = c.page_content.strip().replace("\n", " ")
+                print(
+                    f"  [ctx{i}] {snippet[:max_context]}{'…' if len(snippet) > max_context else ''}"
+                )
+            print()  # blank line between questions
+
+
+# %%
+QUESTIONS = [
+    "What is the most common project domain?",
+    "Were there any usecases about security?",
+]
+
+batched_results = run_batch(QUESTIONS)
+print_results(batched_results)
+
+
+# %%
